@@ -4,4 +4,4 @@
   `http://www.geocities.co.jp/SiliconValley/7406`  
   `http://konbiki.starfree.jp`  
 
-[DirectShow関係1](./Files/dshowmenu.html)
+[DirectShow関係1](https://konbiki.github.io/Geocities/Files/dshowmenu.html)
