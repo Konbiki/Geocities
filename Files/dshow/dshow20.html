@@ -1,0 +1,593 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p><b>６．カメラ映像のスナップショット(VB)</b></p>
+<p>ライブ動画を表示し、任意のタイミングでスナップショット（静止画）を取得する方法を説明します。</p>
+<hr>
+
+<p>ライブ動画の任意のフレームのイメージを取得するにはいくつもの方法がありますが、</p>
+
+<p>　・<b>SampleGrabberフィルタ</b>を使用する<br>
+　　（正確には<b>ISampleGrabberインターフェース</b>の<b>GetCurrentBufferメソッド</b>を使用する）<br>
+<br>
+　・<b>IBasicVideoインターフェース</b>の<b>GetCurrentImageメソッド</b>を使用する<br>
+<br>
+の２方法が一般的かと思います。<br>
+（「４．オリジナルフィルタの作成」で作成したMoFilterのように　独自のフィルタを使う方法もありでしょう）</p>
+
+<p>どっちもフィルタが持っているイメージを取得するという点では同じなんですが、<br>
+下記のような違いがあります。</p>
+
+<table border="1" width="93%" bgcolor="#FFFFFF">
+  <tr>
+    <td width="20%">
+      <p align="center">方法</td>
+    <td width="40%" align="center">長所</td>
+    <td width="40%" align="center">短所</td>
+  </tr>
+  <tr>
+    <td width="20%">
+      <p align="center">SampleGrabber</td>
+    <td width="40%">・グラフ内の任意の場所に入れられる。<br>
+      ・メディアタイプを指定できる。<br>
+      　(イメージ形式を指定できる)<br>
+      ・イメージを取得したときにグラフを停止させたり、<br>
+      　コールバックさせることができる。<br>
+    </td>
+    <td width="40%">・VBから使うのは難しい。<br>
+      　っていうか手段が用意されてない(^^;<br>
+    </td>
+  </tr>
+  <tr>
+    <td width="20%">
+      <p align="center">IBasicVideo</td>
+    <td width="40%">・VBからでも比較的容易に使用できる。<br>
+      ・画面に出力される画像が取得できる。</td>
+    <td width="40%">・環境によっては使用できない。<br>
+      ・グラフ内の任意位置で使用することができない。<br>
+      ・描画を待っているイメージのみが取得できる。</td>
+  </tr>
+</table>
+<p>IBasicVideoが使用できないのはハードウェアで描画する場合になりますが、<br>
+<b>Video Mixing Renderer</b>が使われる環境(WindowsXP)では問題ありません。<br>
+<br>
+VBのみで行うならば必然的にIBasicVideoを使う方法になるでしょう。(^^;;<br>
+<b>IBasicVideo</b>インターフェースは前の章でもすでに使っていますが、<br>
+ビデオストリームのサイズを取得したり、出力するときの矩形を指定したりできます。<br>
+そしてGetCurrentImageメソッドで現在のイメージを取得できます。</p>
+
+<hr>
+<p>では具体的なコードで説明致します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br> 
+      <br>
+      'カメラのフィルタ名<br>
+      Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"     'Che-es! SPYZ<br> 
+      Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br> 
+      <br>
+      'グラフ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      <br>
+      'フォームロード時<br>
+      Private Sub Form_Load()<br> 
+      <br>
+      　　'グラフマネージャの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      　　'グラフにキャプチャ（カメラ）フィルタを追加する<br>
+      　　Dim cameraflt As QuartzTypeLib.IFilterInfo<br> 
+      　　Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br> 
+      <br>
+      　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br> 
+      　　cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br> 
+      <br>
+      　　'カメラの出力ピンからフィルタを接続し、グラフを構築する<br>
+      　　camerapin.Render<br>
+      <br>
+      　　'ビデオサイズ(縦横)を取得<br>
+      　　Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　Dim vx&amp;, vy&amp;<br> 
+      　　Set bv = mGrp<br> 
+      　　bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　'ビデオサイズに合わせてウィンドウを調整<br>
+      　　Dim winx&amp;, winy&amp;    'ウィンドウの縁サイズ<br> 
+      　　Me.ScaleMode = vbTwips<br> 
+      　　winx = Me.Width - Me.ScaleWidth<br> 
+      　　winy = Me.Height - Me.ScaleHeight<br> 
+      　　Me.Width = winx + vx * Screen.TwipsPerPixelX<br> 
+      　　Me.Height = winy + vy * Screen.TwipsPerPixelY<br> 
+      <br>
+      　　'ウィンドウ内で動画を再生させる<br>
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br> 
+      　　Set vw = mGrp<br> 
+      　　vw.WindowStyle = &amp;H40000000 'WS_CHILD<br> 
+      　　vw.SetWindowPosition 0, 0, vx, vy<br> 
+      　　vw.Owner = Me.hWnd<br> 
+      <br>
+      　　'ビデオウィンドウへのメッセージをフォームで受け取るようにする<br>
+      　　vw.MessageDrain = Me.hWnd<br> 
+      <br>
+      　　'再生<br>
+      　　mGrp.Run<br>
+      <br>
+      End Sub<br> 
+      <br>
+      'レジストリに登録されているフィルタをグラフに追加する<br>
+      Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br> 
+      　　Dim regflt As QuartzTypeLib.IRegFilterInfo<br> 
+      　　For Each regflt In Grp.RegFilterCollection<br> 
+      　　　　If regflt.Name = FilterName$ Then<br> 
+      　　　　　　regflt.Filter AddFilter<br> 
+      　　　　　　Exit Function<br> 
+      　　　　End If<br> 
+      　　Next<br>
+      End Function<br> 
+      <br>
+      <br>
+      'ダブルクリック時<br>
+      Private Sub Form_DblClick()<br> 
+      <br>
+      　　'ビデオの情報を取得<br>
+      　　Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　Dim vx As Long, vy As Long<br> 
+      　　Set bv = mGrp<br> 
+      　　bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　'グラフを一時停止させる<br>
+      　　mGrp.Pause<br>
+      <br>
+      　　'ビットマップ読み込み<br>
+      　　Dim sz As Long<br> 
+      　　Dim img() As Long<br> 
+      　　sz = vx * vy + 10<br> 
+      　　ReDim img(sz - 1)<br> 
+      　　bv.GetCurrentImage sz * 4, img(0)<br> 
+      <br>
+      　　'グラフを再開させる<br>
+      　　mGrp.Run<br>
+      <br>
+      　　'形式のチェック<br>
+      　　If (img(0) &lt;> 40) Or (img(3) &lt;> &amp;H200001) Then<br> 
+      　　　　MsgBox "未サポートの形式です。"<br> 
+      　　　　Exit Sub<br> 
+      　　End If<br> 
+      <br>
+      　　'取得したイメージを別ウィンドウに表示する<br>
+      　　ViewImage img(), vx, vy<br> 
+      <br>
+      End Sub<br> 
+      <br>
+      <br>
+      '取得したイメージを別ウィンドウに表示する<br>
+      Private Sub ViewImage(ByRef Image() As Long, ByVal Width As Long, ByVal Height As Long)<br> 
+      <br>
+      　　'表示するウィンドウの準備<br>
+      　　Dim frm As Form2<br> 
+      　　Set frm = New Form2<br> 
+      　　Load frm<br> 
+      　　With frm<br> 
+      　　　　.AutoRedraw = True<br> 
+      　　　　Dim winx&amp;, winy&amp;<br> 
+      　　　　.ScaleMode = vbTwips<br> 
+      　　　　winx = .Width - .ScaleWidth<br> 
+      　　　　winy = .Height - .ScaleHeight<br> 
+      　　　　.Width = winx + Width * Screen.TwipsPerPixelX<br> 
+      　　　　.Height = winy + Height * Screen.TwipsPerPixelY<br> 
+      　　　　.ScaleMode = vbPixels<br> 
+      　　End With<br> 
+      <br>
+      　　'描画<br>
+      　　Dim x As Long, y As Long<br> 
+      　　Dim col As Long, rr As Long, gg As Long, bb As Long<br> 
+      　　Dim pp As Long<br> 
+      　　pp = 10<br> 
+      　　For y = 0 To Height - 1<br> 
+      　　　　For x = 0 To Width - 1<br> 
+      　　　　　　col = Image(pp)<br> 
+      　　　　　　bb = col And 255&amp;<br> 
+      　　　　　　gg = (col \ 256&amp;) And 255&amp;<br> 
+      　　　　　　rr = (col \ 65536) And 255&amp;<br> 
+      　　　　　　col = RGB(rr, gg, bb)<br> 
+      　　　　　　frm.PSet (x, Height - y), col<br> 
+      　　　　　　pp = pp + 1<br> 
+      　　　　Next<br>
+      　　Next<br>
+      <br>
+      　　'フォームの表示<br>
+      　　frm.Show<br>
+      <br>
+      End Sub<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>フォームは２つ必要になります。名前は<b>Form1</b>と<b>Form2</b>です。<br>
+必要なプロパティはコード内で指定していますので<br>
+新規プロジェクトを作成したらフォームをひとつ追加するだけでOKです。<br>
+（上のコードをForm1のコードにコピーしてください）<br>
+<br>
+実行させるとカメラのライブ画像が表示されます。<br>
+ここぞというときにライブ画像をダブルクリックすると、<br>
+別ウィンドウにそのときのイメージが表示されます。<br>
+このサンプルでは行っていませんが、<br>
+別ウィンドウに表示した後SavePicture等で静止画映像を保存できます。<br>
+<br>
+<font color="#FF0000">なおWindowsXPで画面モードが３２ビットカラーの環境でしかテストしていません。<br>
+他の環境では動作しない可能性もあります。</font><br>
+<br>
+サンプルプログラムは<b><a href="snapsample.lzh">ここ</a></b>からダウンロードできます。<br>
+</p>
+<p>例によって順に説明します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br> 
+      <br>
+      'カメラのフィルタ名<br>
+      Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"     'Che-es! SPYZ<br> 
+      Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br> 
+      <br>
+      'グラフ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      <br>
+      'フォームロード時<br>
+      Private Sub Form_Load()<br> 
+      <br>
+      　　    'グラフマネージャの作成<br>
+      　　    Set mGrp = New QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      　　    'グラフにキャプチャ（カメラ）フィルタを追加する<br>
+      　　    Dim cameraflt As QuartzTypeLib.IFilterInfo<br> 
+      　　    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br> 
+      <br>
+      　　    'カメラの出力ピンを取得<br>
+      　　    Dim camerapin As QuartzTypeLib.IPinInfo<br> 
+      　　    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br> 
+      <br>
+      　　    'カメラの出力ピンからフィルタを接続し、グラフを構築する<br>
+      　　    camerapin.Render<br>
+      <br>
+      　　    'ビデオサイズ(縦横)を取得<br>
+      　　    Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　    Dim vx&amp;, vy&amp;<br> 
+      　　    Set bv = mGrp<br> 
+      　　    bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　    'ビデオサイズに合わせてウィンドウを調整<br>
+      　　    Dim winx&amp;, winy&amp;    'ウィンドウの縁サイズ<br> 
+      　　    Me.ScaleMode = vbTwips<br> 
+      　　    winx = Me.Width - Me.ScaleWidth<br> 
+      　　    winy = Me.Height - Me.ScaleHeight<br> 
+      　　    Me.Width = winx + vx * Screen.TwipsPerPixelX<br> 
+      　　    Me.Height = winy + vy * Screen.TwipsPerPixelY<br> 
+      <br>
+      　　    'ウィンドウ内で動画を再生させる<br>
+      　　    Dim vw As QuartzTypeLib.IVideoWindow<br> 
+      　　    Set vw = mGrp<br> 
+      　　    vw.WindowStyle = &amp;H40000000 'WS_CHILD<br> 
+      　　    vw.SetWindowPosition 0, 0, vx, vy<br> 
+      　　    vw.Owner = Me.hWnd<br> 
+      <br>
+      <font color="#0000FF">　　    'ビデオウィンドウへのメッセージをフォームで受け取るようにする<br>
+      　　    vw.MessageDrain = Me.hWnd<br> 
+      </font><br>
+      　　    '再生<br>
+      　　    mGrp.Run<br>
+      <br>
+      End Sub<br> 
+      <br>
+      'レジストリに登録されているフィルタをグラフに追加する<br>
+      Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br> 
+      　　    Dim regflt As QuartzTypeLib.IRegFilterInfo<br> 
+      　　    For Each regflt In Grp.RegFilterCollection<br> 
+      　　　　        If regflt.Name = FilterName$ Then<br> 
+      　　　　　　            regflt.Filter AddFilter<br> 
+      　　　　　　            Exit Function<br> 
+      　　　　        End If<br> 
+      　　    Next<br>
+      End Function<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>フォームロード時にグラフを生成し、フォームでライブ画像を表示させます。<br>
+<font color="#0000FF">青色</font>の部分以外は「２．ライブ動画の再生」と同じなので説明は割愛させて頂きます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><font color="#0000FF"><br>
+      　　    'ビデオウィンドウへのメッセージをフォームで受け取るようにする<br>
+      　　    vw.MessageDrain = Me.hWnd<br> 
+      </font></code></td>  
+  </tr>
+</table>
+
+<p>この部分は、動画をダブルクリックした場合、イベントとして取得できるようにするためのものです。<br>
+フォーム上にビデオレンダラのウィンドウを持たせることで動画をフォーム内で再生させていますが、<br>
+このままでは動画上でのマウス操作などはレンダラのウィンドウが処理(無視)してしまい、<br>
+フォーム等でイベントが発生しません。<br>
+<code><b>MessageDrain</b></code>にフォームのウィンドウハンドルを指定することで<br>
+ビデオレンダラウィンドウに送られたウィンドウメッセージがフォームに送られるようになります。<br>
+これによりビデオウィンドウ上でのマウス操作などがフォーム上でのマウス操作とすることができる訳です。<br>
+要するに動画上でダブルクリックするとフォームのDblClickイベントが発生するようになるということです。</p>
+<p>スナップを指示する操作は別途ボタン等を用意してもよかったんですが、<br>
+こういう方法もあるよってことと、<br>
+ボタン位置やサイズを動画サイズに合わせ調整するのが面倒だったので<br>
+今回はこの方法をとりました。</p>
+<p>で、動画をダブルクリックすると<b>Form_DblClick</b>イベントが発生します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'ダブルクリック時<br>
+      Private Sub Form_DblClick()<br> 
+      <br>
+      　　    'ビデオの情報を取得<br>
+      　　    Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　    Dim vx As Long, vy As Long<br> 
+      　　    Set bv = mGrp<br> 
+      　　    bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　    'グラフを一時停止させる<br>
+      　　    mGrp.Pause<br>
+      <br>
+      　　    'ビットマップ読み込み<br>
+      　　    Dim sz As Long<br> 
+      　　    Dim img() As Long<br> 
+      　　    sz = vx * vy + 10<br> 
+      　　    ReDim img(sz - 1)<br> 
+      　　    bv.GetCurrentImage sz * 4, img(0)<br> 
+      <br>
+      　　    'グラフを再開させる<br>
+      　　    mGrp.Run<br>
+      <br>
+      　　    '形式のチェック<br>
+      　　    If (img(0) &lt;> 40) Or (img(3) &lt;> &amp;H200001) Then<br> 
+      　　　　        MsgBox "未サポートの形式です。"<br> 
+      　　　　        Exit Sub<br> 
+      　　    End If<br> 
+      <br>
+      　　    '取得したイメージを別ウィンドウに表示する<br>
+      　　    ViewImage img(), vx, vy<br> 
+      <br>
+      End Sub</code></td>   
+  </tr>
+</table>
+
+<p>DblClickイベントプロシジャ内ではビットマップイメージを取得して別ウィンドウに表示しています。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'ダブルクリック時<br>
+      Private Sub Form_DblClick()<br> 
+      <br>
+      　　    'ビデオの情報を取得<br>
+      　　    Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　    Dim vx As Long, vy As Long<br> 
+      　　    Set bv = mGrp<br> 
+      　　    bv.GetVideoSize vx, vy<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>IBasicVideoインターフェース経由で動画のサイズを取得しています。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    'グラフを一時停止させる<br>
+      　　    mGrp.Pause<br>
+      </code></td>  
+  </tr>
+</table>
+
+<p><b>GetCurrentImage</b>メソッドでイメージを取得するためにいったんグラフをポーズ状態にしています。<br>
+ヘルプによるとビデオレンダラがVMRの場合(WindowsXP)は不要だそうです。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    'ビットマップ読み込み<br>
+      　　    Dim sz As Long<br> 
+      　　    Dim img() As Long<br> 
+      　　    sz = vx * vy + 10<br> 
+      　　    ReDim img(sz - 1)<br> 
+      　　    bv.GetCurrentImage sz * 4, img(0)<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>イメージを取得するための領域(Long型の配列)を確保し、<b>GetCurrentImage</b>メソッドでビットマップイメージを取得します。<br>
+サイズはビデオサイズから決定しています。Long型(4バイト)でのサイズは以下のようになります。<br>
+　　必要サイズ　＝　横ピクセル数　×　縦ピクセル数　＋　１０<br>
+「+１０」の部分はビットマップ情報が入るためのサイズになります。<br>
+<b>GetCurrentImage</b>メソッドの第１引数はバイト数ということなので「配列のサイズ×４」で指定します。<br>
+また第２引数は参照で渡す必要があるので配列の先頭要素を指定します。<br>
+（配列の先頭ポインタを渡すということです。）</p>
+<p>これでLong型の配列に画像情報が入ります。<br>
+画像情報のフォーマットについては後で説明します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　'グラフを再開させる<br>
+      　　mGrp.Run<br>
+      </code></td>  
+  </tr>
+</table>
+
+<p>イメージを取得したらポーズしていたグラフを再開させます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    '形式のチェック<br>
+      　　    If (img(0) &lt;> 40) Or (img(3) &lt;> &amp;H200001) Then<br> 
+      　　　　        MsgBox "未サポートの形式です。"<br> 
+      　　　　        Exit Sub<br> 
+      　　    End If<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>取得した画像情報の形式をチェックしています。かなりいい加減です（＾＾；</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    '取得したイメージを別ウィンドウに表示する<br>
+      　　    ViewImage img(), vx, vy<br> 
+      <br>
+      End Sub</code></td>   
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'取得したイメージを別ウィンドウに表示する<br>
+      Private Sub ViewImage(ByRef Image() As Long, ByVal Width As Long, ByVal Height As Long)<br> 
+      <br>
+      　　    '表示するウィンドウの準備<br>
+      　　    Dim frm As Form2<br> 
+      　　    Set frm = New Form2<br> 
+      　　    Load frm<br> 
+      　　    With frm<br> 
+      　　　　        .AutoRedraw = True<br> 
+      　　　　        Dim winx&amp;, winy&amp;<br> 
+      　　　　        .ScaleMode = vbTwips<br> 
+      　　　　        winx = .Width - .ScaleWidth<br> 
+      　　　　        winy = .Height - .ScaleHeight<br> 
+      　　　　        .Width = winx + Width * Screen.TwipsPerPixelX<br> 
+      　　　　        .Height = winy + Height * Screen.TwipsPerPixelY<br> 
+      　　　　        .ScaleMode = vbPixels<br> 
+      　　    End With<br> 
+      <br>
+      　　    '描画<br>
+      　　    Dim x As Long, y As Long<br> 
+      　　    Dim col As Long, rr As Long, gg As Long, bb As Long<br> 
+      　　    Dim pp As Long<br> 
+      　　    pp = 10<br> 
+      　　    For y = 0 To Height - 1<br> 
+      　　　　        For x = 0 To Width - 1<br> 
+      　　　　　　            col = Image(pp)<br> 
+      　　　　　　            bb = col And 255&amp;<br> 
+      　　　　　　            gg = (col \ 256&amp;) And 255&amp;<br> 
+      　　　　　　            rr = (col \ 65536) And 255&amp;<br> 
+      　　　　　　            col = RGB(rr, gg, bb)<br> 
+      　　　　　　            frm.PSet (x, Height - y), col<br> 
+      　　　　　　            pp = pp + 1<br> 
+      　　　　        Next<br>
+      　　    Next<br>
+      <br>
+      　　    'フォームの表示<br>
+      　　    frm.Show<br>
+      <br>
+      End Sub<br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>最後にイメージを別フォームに描画してそのフォームを表示させています。</p>
+<p><b>GetCurrentImage</b>メソッドで取得した画像データは下記のようなデータ構造になります。</p>
+
+<table border="1" width="25%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" align="center">ビットマップ情報</td>  
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" align="center">Height-1行目のピクセル情報</td>  
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" align="center">Height-2行目のピクセル情報</td>  
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" align="center">:</td>  
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" align="center">0行目のピクセル情報</td>  
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>配列　　: 実際のデータ例 : 内容<br> 
+      <font color="#0000FF">img( 0) : 00000028       : ビットマップ情報のサイズ(バイト)<br> 
+      img( 1) : 00000140       : 横ピクセル数(Width)<br> 
+      img( 2) : 000000F0       : 縦ピクセル数(Height)<br> 
+      img( 3) : 00200001       : ビット深度とプレーン数<br> 
+      img( 4) : 00000000       :&nbsp;<br>
+      img( 5) : 0004B000       :&nbsp;<br>
+      img( 6) : 00000000       :&nbsp;<br>
+      img( 7) : 00000000       :&nbsp;<br>
+      img( 8) : 00000000       :&nbsp;<br>
+      img( 9) : 00000000       :&nbsp;</font><br>
+      i<font color="#FF0000">mg(10) : 0096A9AC       : 位置(0,Height-1)の色<br> 
+      img(11) : 00A0B4BD       : 位置(1,Height-1)の色<br> 
+      img(12) : 00A9B4C6       : 位置(2,Height-1)の色<br> 
+      :<br>
+      img(??) : ????????       : 位置(Width-1,Height-1)の色</font><br> 
+      <font color="#FF00FF">img(??) : ????????       : 位置(1,Height-2)の色<br> 
+      img(??) : ????????       : 位置(2,Height-2)の色</font><br> 
+      :<br>
+      <font color="#008000">img(??) : ????????       : 位置(0,0)の色<br> 
+      img(??) : ????????       : 位置(1,0)の色<br> 
+      :<br>
+      img(??) : ????????       : 位置(Width-1,0)の色</font><br> 
+      </code></td>  
+  </tr>
+</table>
+
+<p>先頭にビットマップの情報があり、その後に各ピクセルの色情報が入ります。<br>
+<br>
+ピクセル情報は配列の要素10からになります。（先頭の&amp;H28=40バイト後。40/4=10ということです）<br>
+注意しなければならないのは画像の<u>最も下のラインから格納されている</u>ということと、<br>
+各ピクセルの色は(RGB関数で取得できる)<b><u><font color="#FF0000">RR</font><font color="#00FF00">GG</font><font color="#0000FF">BB</font>形式</u></b>ではなく<b><u><font color="#0000FF">BB</font><font color="#00FF00">GG</font><font color="#FF0000">RR</font>形式</u></b>であるということです。<br>
+このため描画時にはちょっと面倒な変換を行っています。<br>
+<br>
+本当はビットマップ情報部を見てそれにあわせた描画をすべきですが、<br>
+このサンプルでは描画しやすいこのフォーマットのみをサポートするように形式チェックを行っています(^^;;;<br>
+なおViewImage関数内では一ピクセル毎にPSetで描画していますが、<br>
+APIを使えば高速で一気に描画することも可能です。<br>
+</p>
+
+<hr>
+<p>以上でVBからライブ画像のスナップショットを取得することができます。<br>
+環境依存なところもあるのは簡便してください。<br>
+どんな環境でも動作させるのはDirectShowでは難しいんです。<br>
+(いろんなハードを共通の手段で使えるようにするための物ではあるんですが、<br>
+&nbsp;必ずサポートしていなければならない機能以外は<br>
+&nbsp;サポートしているかを問い合わせてそれに合わせて処理する必要があるんです。<br>
+&nbsp;この確認処理ってのがしゃれにならないほど大変なんですよねー）</p>
+<p>カメラソースではなく動画ファイルをソースにすれば、<br>
+動画ファイル中のスナップショットも同様に取得することができます。<br>
+ただし動画ファイル中のイメージを取得するならば<br>
+MediaDetオブジェクトを使う方が楽かもしれません。<br>
+（DirectX8のVC用ヘルプにVBのサンプルコードがあります。）<br>
+<br>
+DirectX9ではIBasicVideo2というインターフェースもVBから使えます。<br>
+が、このIBasicVideo2インターフェースのGetCurrentImageメソッドはサポート外となっています。<br>
+実際につかってみるとイメージは取得できるんですが、<br>
+メモリが開放されないみたいですね。<br>
+連続で取得してると使用済みメモリ量がずんずん増えていきます。</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

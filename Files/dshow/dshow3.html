@@ -1,0 +1,473 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p>３．キャプチャ</p>
+<p>前回カメラから表示させた映像をファイルに保存する方法を説明します。<br>
+まずは前回同様、GraphEditでグラフを設計します。</p>
+<p>今回も当然カメラを使いますので、カメラのフィルタを追加します。<br>
+<img border="0" src="dshow23.gif" width="617" height="320"></p>
+
+<p>次に<font color="#FF00FF"><b>Infinite Pin Tee Filter</b></font>というフィルタを追加します。（DirectShow    
+Filtersカテゴリにあります）<br>
+このフィルタは入力が１つで、出力が複数（可変）のフィルタで、<br>
+データの流れを２つに以上に分けることができます。<br>
+<br>
+今回はファイルに出力しながらプレビュー表示も行いたいので<br>
+ファイル出力する流れと、画面に表示する流れの２つに分けます。<br>
+<br>
+２つのフィルタが追加された状態で、<br>
+カメラの出力ピン（~Capture）からRender Pinを行います。<br>   
+（出力ピンで右クリック、ポップアップメニューからRender    
+Pinをクリック）<br>
+<img border="0" src="dshow31.gif" width="944" height="333"></p>
+
+<p>これでプレビューの流れが完成しました。<br>
+次にファイルに出力する流れを作ります。<br>
+<br>
+<font color="#FF00FF"><b>AVI Mux</b></font>フィルタと<font color="#FF00FF"><b>File 
+writer</b></font>フィルタを追加します。（どちらもDirectShow    
+Filtersカテゴリにあります）<br>
+File writerフィルタを追加しようとすると、ファイル名を入力するダイアログが表示されます。<br>   
+ここで出力するファイル名を入力してください。<br>
+<img border="0" src="dshow32.gif" width="944" height="333"></p>
+
+<p>AVI Muxフィルタは通常ビデオの流れと音声の流れを入力し、AVI形式のストリームを出力します。<br>   
+で、出力されたAVI形式のストリームをFile writerフィルタでファイルに出力すれば<br>   
+AVIファイルが出来上がるわけです。<br>
+<br>
+最後にInfinite Pin Tee Filterの出力ピンで開いているピンでRenderPinを行えば<br>   
+AVI MuxフィルタとFile writerフィルタが接続され、グラフが完成します。<br>   
+Infinite Pin Tee Filterの出力ピンは何度も接続／切断を繰り返していると名前が変わってきますが特に問題はないです。<br>   
+<img border="0" src="dshow33.gif" width="949" height="348"></p>
+
+<p>これでグラフを実行すれば別ウィンドウでプレビューが表示されつつ、AVIファイルが出力されます。</p>
+
+<p>このままだと無圧縮のAVIファイルで出力されます。<br>
+何らかの圧縮(コーディック)を行いたいならば、AVI    
+Muxフィルタの前にコーディックフィルタを追加します。<br>
+コーディックフィルタは<font color="#FF00FF"><b>Video Compressors</b></font>カテゴリにあります。<br>
+<img border="0" src="dshow34.gif" width="1063" height="379"></p>
+
+<p>上図はMpeg4コーディックを追加したみた例です。（MPEG4圧縮されたAVIファイルが出力されます）</p>
+
+<p>ではVBで同じことを行うコードを紹介します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br>   
+      <br>
+      'カメラのフィルタ名<br>
+      Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"     'Che-es! SPYZ<br>   
+      Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br>   
+      <br>
+      'グラフ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      'Previewボタン<br>
+      Private Sub Command1_Click()<br>   
+      　　'プレビューを開始<br>
+      　　MakePreviewGraph<br>
+      　　mGrp.Run<br>
+      End Sub<br>   
+      <br>
+      'Captureボタン<br>
+      Private Sub Command2_Click()<br>   
+      　　'キャプチャを開始<br>
+      　　MakeCaptureGraph<br>
+      　　mGrp.Run<br>
+      End Sub<br>   
+      <br>
+      'Stopボタン<br>
+      Private Sub Command3_Click()<br>   
+      　　If Not mGrp Is Nothing Then<br>   
+      　　　　mGrp.Stop<br>
+      　　End If<br>   
+      End Sub<br>   
+      <br>
+      <br>
+      'プレビューグラフの作成<br>
+      Private Sub MakePreviewGraph()<br>   
+      <br>
+      　　'新しいグラフの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      　　'グラフにキャプチャ（カメラ）フィルタを追加する<br>
+      　　Dim cameraflt As QuartzTypeLib.IFilterInfo<br>   
+      　　Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>   
+      <br>
+      　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br>   
+      　　cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br>   
+      <br>
+      　　'カメラの出力ピンからフィルタを接続し、グラフを構築する<br>
+      　　camerapin.Render<br>
+      <br>
+      End Sub<br>   
+      <br>
+      <br>
+      'キャプチャグラフの作成<br>
+      Private Sub MakeCaptureGraph()<br>   
+      <br>
+      　　'新しいグラフの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      　　'グラフにキャプチャ（カメラ）フィルタを追加する<br>
+      　　Dim cameraflt As QuartzTypeLib.IFilterInfo<br>   
+      　　Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>   
+      <br>
+      　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br>   
+      　　cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br>   
+      <br>
+      　　'Infinite Pin Tee Filterを追加<br>   
+      　　Dim infflt As QuartzTypeLib.IFilterInfo<br>   
+      　　Set infflt = AddFilter(mGrp, "Infinite Pin Tee Filter")<br>   
+      <br>
+      　　'プレビュー用の流れを繋げる<br>
+      　　camerapin.Render<br>
+      <br>
+      　　'AVI Muxフィルタを追加<br>   
+      　　AddFilter mGrp, "AVI Mux"<br>   
+      <br>
+      　　'FileWriterフィルタを追加<br>
+      　　Dim writerflt As QuartzTypeLib.IFilterInfo<br>   
+      　　Set writerflt = AddFilter(mGrp, "File writer")<br>   
+      <br>
+      　　'出力ファイル名の設定<br>
+      　　Dim snk As DshowForVBLib.IFileSinkFilterForVB<br>   
+      　　Set snk = writerflt.Filter<br>   
+      　　snk.SetFileName Text1.Text, Nothing<br>   
+      <br>
+      　　'Infinite Pin Tee Filterの開いている出力ピンを探す<br>   
+      　　Dim pn As QuartzTypeLib.IPinInfo<br>   
+      　　Dim pn2 As QuartzTypeLib.IPinInfo<br>   
+      　　Dim infpin As QuartzTypeLib.IPinInfo<br>   
+      　　For Each pn In infflt.Pins<br>   
+      　　　　On Error Resume Next<br>   
+      　　　　　　Set pn2 = pn.ConnectedTo<br>   
+      　　　　　　If Err Then<br>   
+      　　　　　　　　Set pn2 = Nothing<br>   
+      　　　　　　End If<br>   
+      　　　　On Error GoTo 0<br>   
+      　　　　If pn2 Is Nothing Then<br>   
+      　　　　　　Set infpin = pn<br>   
+      　　　　　　Exit For<br>   
+      　　　　End If<br>   
+      　　Next<br>
+      <br>
+      　　'キャプチャの流れを繋げる<br>
+      　　infpin.Render<br>
+      <br>
+      End Sub<br>   
+      <br>
+      <br>
+      'レジストリに登録されているフィルタをグラフに追加する<br>
+      Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br>   
+      　　Dim regflt As QuartzTypeLib.IRegFilterInfo<br>   
+      　　For Each regflt In Grp.RegFilterCollection<br>   
+      　　　　If regflt.Name = FilterName$ Then<br>   
+      　　　　　　regflt.Filter AddFilter<br>   
+      　　　　　　Exit Function<br>   
+      　　　　End If<br>   
+      　　Next<br>
+      End Function<br>   
+      <br>
+      </code></td>  
+  </tr>
+</table>
+<p>今回はフォームもあります。<br>
+<img border="0" src="dshow35.gif" width="360" height="158"></p>
+<table border="1" width="100%">
+  <tr>
+    <td width="16%">コントロール</td>
+    <td width="12%">名前</td>
+    <td width="72%">適用</td>
+  </tr>
+  <tr>
+    <td width="16%">テキストボックス</td>
+    <td width="12%">Text1</td>
+    <td width="72%">出力するファイル名を入力する。</td>
+  </tr>
+  <tr>
+    <td width="16%">コマンドボタン</td>
+    <td width="12%">Command1</td>
+    <td width="72%">表示名「Preview」。プレビュー表示を開始する。</td>
+  </tr>
+  <tr>
+    <td width="16%">コマンドボタン</td>
+    <td width="12%">Command2</td>
+    <td width="72%">表示名「Capture」。キャプチャを開始する。</td>
+  </tr>
+  <tr>
+    <td width="16%">コマンドボタン</td>
+    <td width="12%">Command3</td>
+    <td width="72%">表示名「Stop」。プレビュー又はキャプチャを終了する。</td>
+  </tr>
+</table>
+<p>また参照設定で下記のタイプライブラリを指定する必要があります。</p>
+<p><b>DshowForVBLib</b></p>
+<p>これはデフォルトでは一覧に表示されていないと思います。<br>
+実はこのタイプライブラリはSDKのサンプルディレクトリにあります。</p>
+<p><code><font size="3"><b>（SDKインストールフォルダ）\samples\Multimedia\VBSamples\DirectShow\Editing\DShowVBLib\dshowvblib.tlb</b></font></code></p>
+<p>このタイプライブラリを参照設定ダイアログの参照ボタンで選択してください。</p>
+<p>使い方は、起動後Previewボタンを押すとプレビューを始め、<br>
+Captureボタンを押すとキャプチャを開始します。Stopボタンで終了です。<br>
+キャプチャ前にテキストボックスに出力ファイル名を入力しておきます。<br>
+<br>
+例によって順に説明していきます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br>   
+      <br>
+      'カメラのフィルタ名<br>
+      Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"     'Che-es! SPYZ<br>   
+      Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br>   
+      <br>
+      'フィルタグラフマネージャ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>モジュールセクションは前回とまったく同じです。流用して作ったので（笑</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'Previewボタン<br>
+      Private Sub Command1_Click()<br>   
+      　　    'プレビューを開始<br>  
+      　　    MakePreviewGraph<br>  
+      　　    mGrp.Run<br>  
+      End Sub<br>   
+      </code></td>  
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'プレビューグラフの作成<br>
+      Private Sub MakePreviewGraph()<br>   
+      <br>
+      　　    '新しいグラフの作成<br>  
+      　　    Set mGrp = New QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      　　    'グラフにキャプチャ（カメラ）フィルタを追加する<br>  
+      　　    Dim cameraflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>   
+      <br>
+      　　    'カメラの出力ピンを取得<br>  
+      　　    Dim camerapin As QuartzTypeLib.IPinInfo<br>   
+      　　    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br>   
+      <br>
+      　　    'カメラの出力ピンからフィルタを接続し、グラフを構築する<br>  
+      　　    camerapin.Render<br>  
+      <br>
+      End Sub</code></td>     
+  </tr>
+</table>
+<p>Previewボタン押下時の処理で、プレビュー用のグラフを作成し実行しています。<br>
+コードは前回と同じなので前のページを参照してください。（この辺も前回のをコピペしただけ～）</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'Captureボタン<br>
+      Private Sub Command2_Click()<br>   
+      　　    'キャプチャを開始<br>  
+      　　    MakeCaptureGraph<br>  
+      　　    mGrp.Run<br>  
+      End Sub<br>   
+      </code></td>  
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'キャプチャグラフの作成<br>
+      Private Sub MakeCaptureGraph()<br>   
+      <br>
+      　　    '新しいグラフの作成<br>  
+      　　    Set mGrp = New QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      　　    'グラフにキャプチャ（カメラ）フィルタを追加する<br>  
+      　　    Dim cameraflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>   
+      <br>
+      　　    'カメラの出力ピンを取得<br>  
+      　　    Dim camerapin As QuartzTypeLib.IPinInfo<br>   
+      　　    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br>   
+      <br>
+      　　    'Infinite Pin Tee Filterを追加<br>   
+      　　    Dim infflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set infflt = AddFilter(mGrp, "Infinite Pin Tee Filter")<br>   
+      <br>
+      　　    'プレビュー用の流れを繋げる<br>  
+      　　    camerapin.Render<br>  
+      <br>
+      　　    'AVI Muxフィルタを追加<br>   
+      　　    AddFilter mGrp, "AVI Mux"<br>   
+      <br>
+      　　    'FileWriterフィルタを追加<br>  
+      　　    Dim writerflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set writerflt = AddFilter(mGrp, "File writer")<br>   
+      <br>
+      　　    '出力ファイル名の設定<br>  
+      　　    Dim snk As DshowForVBLib.IFileSinkFilterForVB<br>   
+      　　    Set snk = writerflt.Filter<br>   
+      　　    snk.SetFileName Text1.Text, Nothing<br>   
+      <br>
+      　　    'Infinite Pin Tee Filterの開いている出力ピンを探す<br>   
+      　　    Dim pn As QuartzTypeLib.IPinInfo<br>   
+      　　    Dim pn2 As QuartzTypeLib.IPinInfo<br>   
+      　　    Dim infpin As QuartzTypeLib.IPinInfo<br>   
+      　　    For Each pn In infflt.Pins<br>   
+      　　　　        On Error Resume Next<br>   
+      　　　　　　        Set pn2 = pn.ConnectedTo<br>   
+      　　　　　　        If Err Then<br>   
+      　　　　　　　　            Set pn2 = Nothing<br>   
+      　　　　　　        End If<br>   
+      　　　　        On Error GoTo 0<br>   
+      　　　　        If pn2 Is Nothing Then<br>   
+      　　　　　　            Set infpin = pn<br>   
+      　　　　　　            Exit For<br>   
+      　　　　        End If<br>   
+      　　    Next<br>  
+      <br>
+      　　    'キャプチャの流れを繋げる<br>  
+      　　    infpin.Render<br>  
+      <br>
+      End Sub<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>今回の肝の部分です。長いですが順に説明します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>'キャプチャグラフの作成<br>
+      Private Sub MakeCaptureGraph()<br>   
+      <br>
+      　　    '新しいグラフの作成<br>  
+      　　    Set mGrp = New QuartzTypeLib.FilgraphManager<br>   
+      <br>
+      　　    'グラフにキャプチャ（カメラ）フィルタを追加する<br>  
+      　　    Dim cameraflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>   
+      <br>
+      　　    'カメラの出力ピンを取得<br>  
+      　　    Dim camerapin As QuartzTypeLib.IPinInfo<br>   
+      　　    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>個々まではプレビューと同じです。<br>
+カメラフィルタを追加して、出力ピンを取得しています。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>　　    'Infinite Pin Tee Filterを追加<br>   
+      　　    Dim infflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set infflt = AddFilter(mGrp, "Infinite Pin Tee Filter")<br>   
+      <br>
+      　　    'プレビュー用の流れを繋げる<br>  
+      　　    camerapin.Render<br>  
+      </code></td>  
+  </tr>
+</table>
+<p>Infinite Pin Tee Filterを追加して、プレビュー用の流れを作っています。<br>  
+やり方は他のフィルタの追加と変わりません。<br>
+この状態で、上の2番目の図の状態になります。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>　　    'AVI Muxフィルタを追加<br>   
+      　　    AddFilter mGrp, "AVI Mux"<br>   
+      <br>
+      　　    'FileWriterフィルタを追加<br>  
+      　　    Dim writerflt As QuartzTypeLib.IFilterInfo<br>   
+      　　    Set writerflt = AddFilter(mGrp, "File writer")<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>AVI MuxフィルタとFile writerフィルタを追加しています。<br>  
+AVI Muxフィルタはあとでなにかする必要がないので、戻り値は破棄してます。</p>  
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>　　    '出力ファイル名の設定<br>  
+      　　    Dim snk As DshowForVBLib.IFileSinkFilterForVB<br>   
+      　　    Set snk = writerflt.Filter<br>   
+      　　    snk.SetFileName Text1.Text, Nothing<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>File writerフィルタから<font color="#FF00FF"><b>IFileSinkFilterForVB</b></font>インターフェースを取得し、<br>  
+<font color="#FF00FF"><b>SetFileName</b></font>プロパティでファイル名を設定します。<br>
+2番目の引数はNothingでかまいません（メディアタイプを指定したりします）。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><code>　　    'Infinite Pin Tee Filterの開いている出力ピンを探す<br>   
+      　　    Dim pn As QuartzTypeLib.IPinInfo<br>   
+      　　    Dim pn2 As QuartzTypeLib.IPinInfo<br>   
+      　　    Dim infpin As QuartzTypeLib.IPinInfo<br>   
+      　　    For Each pn In infflt.Pins<br>   
+      　　　　        On Error Resume Next<br>   
+      　　　　　　        Set pn2 = pn.ConnectedTo<br>   
+      　　　　　　        If Err Then<br>   
+      　　　　　　　　            Set pn2 = Nothing<br>   
+      　　　　　　        End If<br>   
+      　　　　        On Error GoTo 0<br>   
+      　　　　        If pn2 Is Nothing Then<br>   
+      　　　　　　            Set infpin = pn<br>   
+      　　　　　　            Exit For<br>   
+      　　　　        End If<br>   
+      　　    Next<br>  
+      <br>
+      　　    'キャプチャの流れを繋げる<br>  
+      　　    infpin.Render<br>  
+      <br>
+      End Sub<br>   
+      </code></td>  
+  </tr>
+</table>
+<p>キャプチャ用の流れを繋げるために、Infinite Pin Tee Filterの開いている出力ピンを検索し、<br>  
+Renderメソッドでつなげています。<br>
+FindPinで&quot;Output2&quot;とかを探させれば楽なのですが、<br>
+名前が変わる可能性があるのちゃんと検索してみました。<br>
+ConnectedToメソッドで接続されている相手のピンを取得できるのですが、<br>
+その戻りが無いもの（＝エラーが発生するもの）を探して<br>
+そのピンからRenderメソッドを呼び出してつなげてます。</p>
+<p>これでキャプチャ用のグラフ（プレビュー表示付き）が作成されます。<br>
+<br>
+このままだと無圧縮のAVIが出力されますが、<br>
+キャプチャ用のRenderを行う前にエンコーダフィルタを追加すれば<br>
+MPEGなどのエンコードをかけることもできます。</p>
+<p>今回はカメラからソースを取得しましたが、<br>
+既に存在するファイルからグラフを作成すれば、<br>
+エンコード形式を変換する変換ツールも作れます。<br>
+</p>
+<p>ファイルに動画をキャプチャするときに大切なのは出力ファイル名を指定する部分です。<br>
+それ以外は前回までのテクニックの組み合わせですが、<br>
+出力するには今回使った<b>DshowForVBLib</b>などを使う必要があります。</p>
+<p>ファイル名を指定する方法はヘルプに記述がみあたらなかったのですが、<br>
+サンプルプログラムをみればすぐに見つかりました。<br>
+DirectXはVer2から使ってますが、<br>
+DirectXの場合サンプルソースもヘルプの一部と考えるべきだと思いますね。</p>
+<p>　</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

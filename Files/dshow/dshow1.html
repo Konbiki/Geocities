@@ -1,0 +1,789 @@
+<html>
+
+
+
+<head>
+
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<p><b>DirectShow関係</b></p>
+
+<hr>
+
+<p>１．動画の再生</p>
+
+<p>具体的なコードの前にDirectShowについて知っておいた方がいいことを先に説明します。</p>
+
+<p><br>
+
+DirectShowでは「<font color="#FF00FF"><b>フィルタ</b></font>」と呼ばれるモジュールをつなぎ合わせて「<font color="#FF00FF"><b>フィルタグラフ</b></font>」と呼ぶものを作ります。<br>
+
+フィルタ同士の接続は「<font color="#FF00FF">ピン</font>」と呼ばれるインターフェースで行われます。</p>
+
+
+
+<p>下図はMPEG1ファイルを再生するグラフになります。<br>
+
+<img border="0" src="dshow11.gif" width="1137" height="384"></p>
+
+
+
+<p>
+
+四角のがフィルタで、フィルタの左右にあるでっぱりがピンになります。<br>
+
+フィルタ同士の接続は方向性があり、出力ピンと入力ピンが接続されます。<br>
+
+（上図の矢印がフィルタの接続になります。）<br>
+
+動画のデータは「<font color="#FF00FF"><b>ストリーム</b></font>」と呼ばれ、このストリームがグラフの上流から下流に向かって流れていくと想像してください。<br>
+
+<br>
+
+フィルタは大きく分けて下記のような種類があります。</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+	<td width="17%" align="center">ソースフィルタ</td>
+
+	<td width="83%">HDDなどから動画や音声のファイルを読み込んで、下流のフィルタにデータを流します。<br>
+
+	  通常出力の口だけがあり、グラフの上流に位置します。<br>
+
+	</td>
+
+  </tr>
+
+  <tr>
+
+	<td width="17%" align="center">変換フィルタ</td>
+
+	<td width="83%">入力と出力があり、入力したストリームに何らかの処理を施し出力します。<br>
+
+	  ソースフィルタが出力したストリームを分解し、映像と音声のストリームに分ける「スプリッタフィルタ」、<br>
+
+	  圧縮されているストリームを展開する「デコーダ（デコンプレッサ）フィルタ」、<br>
+
+	  逆に非圧縮なストリームを圧縮する「エンコーダ（コンプレッサ）フィルタ」、<br>
+
+	  等々、非常に多くの種類があります。<br>
+
+	</td>
+
+  </tr>
+
+  <tr>
+
+	<td width="17%" align="center">レンダラフィルタ</td>
+
+	<td width="83%">通常入力だけがあり、画面にストリームを描画（レンダリング）したり<br>
+
+	  スピーカから音を出したりします。<br>
+
+	</td>
+
+  </tr>
+
+</table>
+
+<p>上の図はDirectX SDKに付属するツール「<font color="#FF00FF">GRAPHEDIT</font>(graphedt.exe)」で作成したものです。<br> 
+ 
+このGraphEditは<font size="5">非常に便利なツール</font>で、<br> 
+ 
+簡易プレーヤーにもなりますし、MpegからWMVへ等の変換ツールにもなります。テレビのキャプチャなんてのも可能です。<br> 
+ 
+ぜひ使いこなせるようになりましょう。（日本語に対応していないのが難点）</p> 
+ 
+<p>では、実際にVBでDirectShowを使う方法を説明していきます。<br> 
+ 
+基本的に上で説明したフィルタグラフを作成し、それを実行させれば動画の再生ができるわけです。</p> 
+ 
+<p>まず前準備として<br> 
+ 
+VBでDirectShowを使うには下記のDLLを参照設定する必要があります。</p> 
+ 
+<p><b>ActiveMovie control type library</b></p> 
+ 
+<p>DirectX SDKをインストールすれば参照設定のダイアログに表示されているはずです。<br> 
+ 
+</p> 
+ 
+<p>動画を再生する実際のコードは下記のようになります。<br> 
+ 
+フォームはデフォルトのままでかまいません（コードからサイズ等を変更しています）。<br> 
+ 
+下記のコードをフォームモジュールにコピペして実行すれば、動画ファイルが（いきなり）再生されます。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br>	 
+ 
+	  <br> 
+ 
+	  '再生する動画ファイル<br> 
+ 
+	  Private Const VIDEOFILE$ =	 
+ 
+	  &quot;C:\DXSDK\samples\Multimedia\Media\butterfly.mpg&quot;<br> 
+ 
+	  <br> 
+ 
+	  'グラフマネージャ<br> 
+ 
+	  Private mGrp As QuartzTypeLib.FilgraphManager<br>  
+ 
+	  <br> 
+ 
+	  <br> 
+ 
+	  Private Sub Form_Load()<br>	 
+ 
+	  <br> 
+ 
+      　　'グラフマネージャの作成<br>
+
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br>	 
+ 
+	  <br> 
+ 
+      　　'再生用のグラフを作成<br>
+
+      　　mGrp.RenderFile VIDEOFILE$<br>	 
+ 
+	  <br> 
+ 
+      　　'ビデオサイズ(縦横)を取得<br>
+
+      　　Dim bv As QuartzTypeLib.IBasicVideo<br>	 
+ 
+      　　Dim vx&amp;, vy&amp;<br>	 
+ 
+      　　Set bv = mGrp<br>  
+ 
+      　　bv.GetVideoSize vx, vy<br>	 
+ 
+	  <br> 
+ 
+      　　'ビデオサイズに合わせてウィンドウを調整<br>
+
+      　　Dim winx&amp;, winy&amp;	  'ウィンドウの縁サイズ<br>  
+ 
+      　　Me.ScaleMode = vbTwips<br>	 
+ 
+      　　winx = Me.Width - Me.ScaleWidth<br>	 
+ 
+      　　winy = Me.Height - Me.ScaleHeight<br>  
+ 
+      　　Me.Width = winx + vx * Screen.TwipsPerPixelX<br>	 
+ 
+      　　Me.Height = winy + vy * Screen.TwipsPerPixelY<br>  
+ 
+	  <br> 
+ 
+      　　'ウィンドウ内で動画を再生させる<br>
+
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br>	 
+ 
+      　　Set vw = mGrp<br>  
+ 
+      　　vw.WindowStyle = &amp;H40000000 'WS_CHILD<br>  
+ 
+      　　vw.SetWindowPosition 0, 0, vx, vy<br>  
+ 
+      　　vw.Owner = Me.hWnd<br>	 
+ 
+	  <br> 
+ 
+      　　'再生<br>
+
+      　　mGrp.Run<br>
+
+	  <br>
+
+	  End Sub<br>	 
+ 
+	  </code></td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p><code>順に説明します。</code></p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>'再生する動画ファイル<br> 
+ 
+	  Private Const VIDEOFILE$ =	 
+ 
+	  &quot;C:\DXSDK\samples\Multimedia\Media\butterfly.mpg&quot;<br> 
+ 
+	  <br> 
+ 
+	  'グラフマネージャ<br> 
+ 
+	  Private mGrp As QuartzTypeLib.FilgraphManager</code></td>  
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>モジュールセクションでは定数の定義と「<font color="#FF00FF"><b>フィルタグラフマネージャ</b></font>」オブジェクトの定義を行っています。<br> 
+ 
+定数VIDEOFILE$は再生するファイル名を指定しています。試すときは適当に変えてください。<br> 
+ 
+（butterfly.mpgはDirectX SDKにあるサンプルファイルです）<br> 
+ 
+<br> 
+ 
+フィルタグラフマネージャはグラフ作成をサポートしてくれるオブジェクトです。（っていうかVBではこれでしか作れない）<br> 
+ 
+<font color="#FF00FF">FilgraphManager</font>オブジェクトは動画再生中は存在し続ける必要があるのでモジュールセクションで定義します。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>Private Sub Form_Load()<br>	 
+ 
+	  <br> 
+ 
+      　　	  'グラフマネージャの作成<br> 
+ 
+      　　	  Set mGrp = New QuartzTypeLib.FilgraphManager<br>	 
+ 
+	  </code></td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>FilgraphManagerオブジェクトをNew演算子により作成します。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 '再生用のグラフを作成<br> 
+ 
+      　　	  mGrp.RenderFile VIDEOFILE$<br>	 
+ 
+	  </code></td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>再生するファイルを指定してグラフを作成します。<br> 
+ 
+<font color="#FF00FF"><b>RendeFile</b></font>メソッドはファイルからその形式を自動的に判断し、再生するのに必要なグラフを作成してくれます。<br> 
+ 
+ただ再生させるだけならば非常に楽です。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 'ビデオサイズ(縦横)を取得<br> 
+ 
+      　　	  Dim bv As QuartzTypeLib.IBasicVideo<br>	 
+ 
+      　　	  Dim vx&amp;, vy&amp;<br>	 
+ 
+      　　	  Set bv = mGrp<br>  
+ 
+      　　	  bv.GetVideoSize vx, vy<br>	 
+ 
+	  </code></td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>フィルタグラフマネージャから<font color="#FF00FF">IBasicVideo</font>インターフェースを取得し、<br> 
+ 
+動画ファイルの縦横サイズを取得しています。<br> 
+ 
+これは下の部分で動画サイズに合わせてウィンドウサイズを変更するために取得しています。<br> 
+ 
+<br> 
+ 
+ここでちょっと説明しておくことがあります。<br> 
+ 
+変数mGrpは<font color="#FF00FF">FilgraphManager</font>型の変数なのですが、<br> 
+ 
+これを<font color="#FF00FF">IBasicVideo</font>型の変数bvにSet文で参照を代入しています。<br> 
+ 
+これはエラーになりません。<br> 
+ 
+なぜならばFilgraphManagerオブジェクトはIBasicVideoインターフェースを持っているからです。<br> 
+ 
+Impliment文などでクラスを使ったことがある方なら理解できると思いますが、<br> 
+ 
+知らない方には奇妙なコードに見えるかもしれません。<br> 
+ 
+同様にFilgraphManagerオブジェクトは下記のインターフェースを持ちます。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IMediaControl</td> 
+ 
+	<td width="82%">グラフの動作に関するインターフェースです。<br> 
+ 
+	  実行させたり（再生開始）、止めたりするメソッドがあります。<br> 
+ 
+	  このインターフェースはデフォルトインターフェースなので、<br> 
+ 
+	  メソッドはFilgraphManagerオブジェクトから直にメソッドを呼び出せます。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IMediaEvent</td> 
+ 
+	<td width="82%">イベント関係のインターフェースです。<br> 
+ 
+	  動作が完了するまで待つWaitForCompletionメソッドなどがあります。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IMediaPosition</td> 
+ 
+	<td width="82%">主にシーク関係のインターフェースです。<br> 
+ 
+	  再生位置を変更したり、全体の長さなどを取得するメソッドがあります。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IBasicAudio</td> 
+ 
+	<td width="82%">音声関係のインターフェースです。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IBasicVideo</td> 
+ 
+	<td width="82%">映像関係のインターフェースです。<br> 
+ 
+	  これから動画のサイズなどを取得できます。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+  <tr> 
+ 
+	<td width="18%" align="center">IVideoWindow</td> 
+ 
+	<td width="82%">ビデオレンダラ関係のインターフェースです。<br> 
+ 
+	  デフォルトでは別ウィンドウで動画が再生されますが、<br> 
+ 
+	  このインターフェースのOwnerプロパティで自前のフォーム内で再生が可能です。<br> 
+ 
+	</td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>　</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 'ビデオサイズに合わせてウィンドウを調整<br> 
+ 
+      　　	  Dim winx&amp;, winy&amp;	  'ウィンドウの縁サイズ<br>  
+ 
+      　　	  Me.ScaleMode = vbTwips<br>	 
+ 
+      　　	  winx = Me.Width - Me.ScaleWidth<br>	 
+ 
+      　　	  winy = Me.Height - Me.ScaleHeight<br>  
+ 
+      　　	  Me.Width = winx + vx * Screen.TwipsPerPixelX<br>	 
+ 
+      　　	  Me.Height = winy + vy * Screen.TwipsPerPixelY<br>  
+ 
+	  <br> 
+ 
+      　　	  'ウィンドウ内で動画を再生させる<br> 
+ 
+      　　	  Dim vw As QuartzTypeLib.IVideoWindow<br>	 
+ 
+      　　	  Set vw = mGrp<br>  
+ 
+      　　	  vw.WindowStyle = &amp;H40000000 'WS_CHILD<br>  
+ 
+      　　	  vw.SetWindowPosition 0, 0, vx, vy<br>  
+ 
+      　　	  vw.Owner = Me.hWnd<br>	 
+ 
+	  </code></td> 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>ここの前半は、フォームの縁のサイズを計算し、<br> 
+ 
+動画のサイズに合わせてフォームのサイズを変更しています。<br> 
+ 
+<br> 
+ 
+後半はフォーム内で動画を再生させるための処理です。<br> 
+ 
+<font color="#FF00FF"><b>WindowStyle</b></font>プロパティで子ウィンドウの形式にし、<br> 
+ 
+<font color="#FF00FF"><b>SetWIndowPosition</b></font>メソッドで位置とサイズを指定、<br> 
+ 
+<font color="#FF00FF"><b>Owner</b></font>プロパティで親ウィンドウをフォームにしています。<br> 
+ 
+これでフォーム内で動画が再生されます。<br> 
+ 
+<br> 
+ 
+SetWindowPositionの引数の意味はMSDNを参照してください。<br> 
+ 
+（指定しない場合どうなるかを見てみればわかります。これはこれで面白いけど）</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 '再生<br> 
+ 
+      　　	  mGrp.Run<br> 
+ 
+	  <br> 
+ 
+	  End Sub</code></td>	 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>最後にRunメソッドでグラフを開始させます。<br> 
+ 
+これで動画再生が始まります。</p> 
+ 
+<p>　</p> 
+ 
+<p>このサンプルではフォーム内で再生させるためのコードの方が多いです。<br> 
+ 
+それを抜いてDIrectShowで動画を再生させる方法をまとめるとこんな感じです。</p> 
+ 
+<p>１．FilgraphManagerオブジェクトを作成</p> 
+ 
+<p>２．RenderFileメソッドでグラフを作成</p> 
+ 
+<p>３．Runメソッドで再生開始</p> 
+ 
+<p>実は定義を入れても４行ですんだりします（笑<code><br> 
+ 
+</code></p> 
+ 
+<p>DirectShowではAVIやMPEG、WMV形式の他に、<b>JPEGやGIFファイル等の静止画にも対応</b>しています。<br> 
+ 
+GIFの場合アニメーションGIFならばちゃんと動きます。<br> 
+ 
+アニメーションGIFをVBで再生させるときはWebBrowserコントロールを使うのが常ですが、<br> 
+ 
+DirectShowを使っても可能なんですよ。</p> 
+ 
+ 
+ 
+<hr> 
+ 
+<p><b>追加情報</b></p>
+<p>上記コードでは最後まで再生されると、最後の画像が表示されたままになります。<br>
+再生が終わったことを知りたい場合や、連続再生（ループ再生）する場合は<br>
+主に２つ方法があります。（他の方法もありますが）<br>
+<br>
+　（１）現在の再生位置を調べて終端に達したか判断する（ポーリング）<br>
+　（２）再生が完了したときに通知をもらう（K.J.K様よりゲストブックに投稿頂きました）<br>
+<br>
+再生位置の表示も行うような場合は（１）の方が楽かもしれません。<br>
+単純に再生が終了したことを知りたい場合は（２）の方がスマートだと思います。<br>
+</p>
+<p>---------------------------------------------</p>
+<p>（１）現在の再生位置を調べて終端に達したか判断する（ポーリング）<br>
+具体的なコードは下記になります。<br>
+上で提示しているサンプルコードに下記を追加し、<br>
+フォームにタイマーコントロール（Name=Timer1、Interval=100程度）を追加してください。<br>
+</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+	<td width="100%" bgcolor="#FFFFFF"><code>'タイマー処理<br>
+      Private Sub Timer1_Timer()<br> 
+      <br> 
+      　　'IMediaPositionインターフェース取得<br>
+      　　Dim ms As IMediaPosition<br> 
+      　　Set ms = mGrp<br> 
+      　　If ms Is Nothing Then Exit Sub<br> 
+      <br> 
+      　　　　'長さ取得<br>
+      　　　　Dim maxpos As Double<br> 
+      　　　　maxpos = ms.Duration<br> 
+      <br> 
+      　　　　'現在位置取得<br>
+      　　　　Dim pos As Double<br> 
+      　　　　pos = ms.CurrentPosition<br> 
+      <br> 
+      　　　　'判定<br>
+      　　　　If maxpos &lt;= pos Then<br> 
+      　　　　'最後に達している<br>
+      <br>
+      　　　　'巻き戻し<br>
+      　　　　ms.CurrentPosition = 0 '現在位置を先頭にする<br> 
+      <br> 
+      　　End If<br> 
+      <br> 
+      End Sub</code></td>	 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p>タイマーイベントにて現在の再生位置と終了位置（全体の長さ）を取得し、<br> 
+終了位置に達していた場合は現在の再生位置を先頭にすることでループ再生を実現しています。<br> 
+（IMediaPositionインターフェースのCurrentPositionプロパティが現在の再生位置で<br> 
+　取得も設定もできます。）<br>
+<br>
+<br>
+</p>
+<p>---------------------------------------------</p>
+<p>（２）再生が完了したときに通知をもらう<br>
+IMediaEventExインターフェースのSetNotifyWindowを使用すると<br>
+再生が終了したときに指定したウィンドウに対してメッセージを送ってもらえます。<br>
+この通知メッセージを受け取った時にグラフのイベントを取得することにより<br>
+再生の終了タイミングを得ることができます。<br>
+<br>
+具体的なコードは下記になります。<br>
+上で提示しているサンプルコードを下記の様に変更・追加し、<br>
+フォーム上に非表示にしたPictureBox（Name=Pic_Dummy、Visible=False）を配置して下さい。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　略<br>
+      <br>
+      　　'ウィンドウ内で動画を再生させる<br>
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br> 
+      　　Set vw = mGrp<br> 
+      　　vw.WindowStyle = &amp;H40000000 'WS_CHILD<br> 
+      　　vw.SetWindowPosition 0, 0, vx, vy<br> 
+      　　vw.Owner = Me.hWnd<br> 
+      <br> 
+      　　'イベントを通知するウィンドウの指定<br>
+      　　Dim ex As IMediaEventEx<br> 
+      　　Set ex = mGrp<br> 
+      　　ex.SetNotifyWindow Pic_Dummy.hWnd, &amp;H200, 0 '&amp;H200 = WM_MOUSEMOVE<br> 
+      <br> 
+      　　'再生<br>
+      　　mGrp.Run<br>
+      <br>
+      End Sub<br> 
+      <br> 
+      <br> 
+      'イベント通知を受けたときの処理<br> 
+      Private Sub Pic_Dummy_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)<br> 
+      <br> 
+      　　'IMediaEventインターフェースの取得<br>
+      　　Dim ev As IMediaEvent<br> 
+      　　Set ev = mGrp<br> 
+      <br> 
+      　　'すべてのイベントを取得する<br>
+      　　Dim ecode As Long, para1 As Long, para2 As Long<br> 
+      　　Dim ms As IMediaPosition<br> 
+      　　Do<br>
+      　　　　'イベントコードの取得<br>
+      　　　　On Error Resume Next<br> 
+      　　　　ev.GetEvent ecode, para1, para2, 100<br> 
+      　　　　If Err Then Exit Do<br> 
+      　　　　On Error GoTo 0<br> 
+      　　　　Debug.Print "Event : " + Format$(ecode)<br> 
+      <br> 
+      　　　　'各イベントコードの処理<br>
+      　　　　Select Case ecode<br> 
+      　　　　　　Case 1 'EC_COMPLETE<br> 
+      　　　　　　'再生終了<br>
+      <br>
+      　　　　　　'巻き戻し<br>
+      　　　　　　Set ms = mGrp<br> 
+      　　　　　　ms.CurrentPosition = 0 '現在位置を先頭にする<br> 
+      <br> 
+      　　　　End Select<br> 
+      <br> 
+      　　　　'リソース解放<br>
+      　　　　ev.FreeEventParams ecode, para1, para2<br> 
+      <br> 
+      　　Loop<br>
+      <br>
+      End Sub</code></td>	 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p><br> 
+<br> 
+若干補足します。</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code><br> 
+      　　'イベントを通知するウィンドウの指定<br>
+      　　Dim ex As IMediaEventEx<br> 
+      　　Set ex = mGrp<br> 
+      　　ex.SetNotifyWindow Pic_Dummy.hWnd, &amp;H200, 0 '&amp;H200 = WM_MOUSEMOVE<br> 
+      </code></td>	 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p><br> 
+Runメソッドで再生する前に、<br> 
+上記のようにSetNotifyWindowで通知先のウィンドウハンドルと通知するメッセージを指定しておきます。<br> 
+これによりグラフでなんらかのイベント（再生が終わったとか、状態が変化したとか、等など）が<br> 
+発生した場合、指定されたウィンドウに対して指定したメッセージが送られるようになります。<br> 
+<br> 
+サンプルではウィンドウハンドルにはPic_DummyのhWndプロパティを指定し<br> 
+通知メッセージとしてWM_MOUSEMOVEを指定しています。<br> 
+このようにすることでイベントが発生した場合Pic_dummyのMouseMoveイベントが発生します。<br> 
+（この辺はWindowsの仕組みをある程度知ってないと理解できないかもしれません。）<br> 
+</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+	<td width="100%" bgcolor="#FFFFFF"><code><br> 
+      'イベント通知を受けたときの処理<br> 
+      Private Sub Pic_Dummy_MouseMove(Button As Integer, Shift As Integer, X As Single, Y As Single)<br> 
+      <br> 
+      　　    'IMediaEventインターフェースの取得<br>
+      　　    Dim ev As IMediaEvent<br> 
+      　　    Set ev = mGrp<br> 
+      <br> 
+      　　    'すべてのイベントを取得する<br>
+      　　    Dim ecode As Long, para1 As Long, para2 As Long<br> 
+      　　    Dim ms As IMediaPosition<br> 
+      　　    Do<br>
+      　　　　        'イベントコードの取得<br>
+      　　　　        On Error Resume Next<br> 
+      　　　　        ev.GetEvent ecode, para1, para2, 100<br> 
+      　　　　        If Err Then Exit Do<br> 
+      　　　　        On Error GoTo 0<br> 
+      　　　　        Debug.Print "Event : " + Format$(ecode)<br> 
+      <br> 
+      　　　　        '各イベントコードの処理<br>
+      　　　　        Select Case ecode<br> 
+      　　　　　　            Case 1 'EC_COMPLETE<br> 
+      　　　　　　                '再生終了<br>
+      <br>
+      　　　　　　                '巻き戻し<br>
+      　　　　　　                Set ms = mGrp<br> 
+      　　　　　　                ms.CurrentPosition = 0 '現在位置を先頭にする<br> 
+      <br> 
+      　　　　        End Select<br> 
+      <br> 
+      　　　　        'リソース解放<br>
+      　　　　        ev.FreeEventParams ecode, para1, para2<br> 
+      <br> 
+      　　    Loop<br>
+      <br>
+      End Sub</code></td>	 
+ 
+  </tr> 
+ 
+</table> 
+ 
+<p><br> 
+ピクチャーボックスPic_DummyのMouseMoveイベントプロシジャでは<br> 
+IMediaEventインタフェースを使いイベントコードを取得し、<br> 
+再生終了のイベントコード(EC_COMPLETE = 1)を得た時に<br> 
+（１）と同様に再生位置を先頭に戻しています。<br> 
+<br> 
+ここで注意して欲しい点が２点あります。<br> 
+一つは通知メッセージが送られる（＝MouseMoveイベントが発生する）のは<br> 
+再生終了時のみではないということです。<br> 
+メッセージが送られるのはなんらかのグラフイベントが発生したからで、<br> 
+再生が終わってない状態でもMouseMoveイベントが発生します。<br> 
+<br> 
+もう一つはグラフのイベント一件毎にMouseMoveイベントが発生する訳ではないということです。<br> 
+MouseMoveイベントが発生した要因のグラフイベントのコードは<br> 
+IMediaEventインターフェースのGetEventメソッドで取得しますが、<br> 
+サンプルコードのように失敗（＝エラー）となるまで<br> 
+Do～Loopにて繰り返し取得する必要があります。<br> 
+<br> 
+<br> 
+グラフのイベントコード(EC_COMPLETEなど)の意味については<br> 
+リファレンスマニュアルに記載がありますのでそちらを参照してください。<br> 
+また実際の値についてはC/C++用のヘッダファイルをみることで確認できます。<br> 
+（私はWindowsSDKなどにあるevcode.hなどを見て確認しています）<br> 
+</p> 
+ 
+ 
+ 
+<hr> 
+ 
+<p><a href="../index.html">上に戻る</a></p> 
+ 
+ 
+ 
+</body> 
+ 
+ 
+ 
+</html> 
+ 

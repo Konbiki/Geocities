@@ -1,0 +1,776 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p><b>４</b><b>．オリジナルフィルタの作成（その２）</b></p>
+<p>前回は形だけだったのでフィルタとしては動作しなかったので、<br>
+実際に動くフィルタを紹介します。</p>
+<p>といっても、ここで紹介するのは単純な変換フィルタです。（＾＾；</p>
+<p>入力ピン：１つ<br>
+出力ピン：１つ<br>
+効果：一つ前の映像と新しい画像とブレンドする。</p>
+<p>これだけのフィルタです。</p>
+<p>効果の仕組みとしては、<br>
+接続時に確保したメモリに入力ピンから来た映像を保存しておき、<br>
+新しく映像が来たときに前回の映像と新しい映像を95:5の割合で混ぜます。<br>
+じわ～と映像が変わっていくような効果があります。<br>
+カメラの入力とかにつかうと映画マトリックスのような感じがちょっとだけします（笑</p>
+<hr>
+
+<p>実際の全コードは以下のようになります。<br>
+色付き部分が前回から追加された部分です。</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>// MoFilter.cpp: CMoFilter クラスのインプリメンテーション
+//
+//////////////////////////////////////////////////////////////////////
+
+#include	&lt;stdio.h&gt;
+#include	&lt;streams.h&gt;
+#include	&lt;initguid.h&gt;
+
+#include	&quot;MoFilter.h&quot;
+
+
+//////////////////////////////////////////////////////////////////////
+// 入力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE mPinMediaType_In=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// 出力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE mPinMediaType_Out=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// ピン情報
+const AMOVIESETUP_PIN mPinInfo[]=
+{
+	{
+		L&quot;Input&quot;,			// ピンの名前（未使用）
+		FALSE,				// このピンをレンダリングするか?
+		FALSE,				// これは出力ピンか?
+		FALSE,				// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,				// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,					// メディアタイプの数
+		&amp;mPinMediaType_In	// メディアタイプ
+	},
+	{
+		L&quot;Output&quot;,			// ピンの名前（未使用）
+		FALSE,				// このピンをレンダリングするか?
+		TRUE,				// これは出力ピンか?
+		FALSE,				// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,				// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,					// メディアタイプの数
+		&amp;mPinMediaType_Out	// メディアタイプ
+	}
+};
+
+// フィルタ設定
+const AMOVIESETUP_FILTER mFilterInfo=
+{
+	&amp;CLSID_MoFilter,		// クラスID
+	L&quot;MoFilter&quot;,			// フィルタ名
+	MERIT_DO_NOT_USE,		// メリット
+	2,						// ピンの数
+	mPinInfo				// ピン情報
+};
+
+// ファクトリテンプレートの宣言
+CFactoryTemplate g_Templates[]=
+	{
+		{
+			L&quot;MoFilter&quot;,
+			&amp;CLSID_MoFilter,
+			CMoFilter::CreateInstance,
+			NULL,
+			&amp;mFilterInfo
+		}
+	};
+int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
+
+
+
+
+//////////////////////////////////////////////////////////////////////
+// レジストリへの登録
+STDAPI DllRegisterServer()
+{
+	return AMovieDllRegisterServer2( TRUE );
+}
+
+// レジストリからの解除
+STDAPI DllUnregisterServer()
+{
+	return AMovieDllRegisterServer2( FALSE );
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
+// コンストラクタ
+CMoFilter::CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr) :
+	CTransformFilter(tszName, pUnk, CLSID_MoFilter)
+{
+	<font color="#0000FF">mImageBuffer=NULL;</font>
+}
+
+// デストラクタ
+CMoFilter::~CMoFilter()
+{
+	<font color="#0000FF">if( mImageBuffer!=NULL )
+		delete[] mImageBuffer;</font>
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// インスタンス作成
+CUnknown *CMoFilter::CreateInstance(LPUNKNOWN punk, HRESULT *phr)
+{
+	CMoFilter *pNewObject=new CMoFilter( NAME(&quot;MoFilter&quot;),punk,phr );
+	if( pNewObject==NULL ) 
+	{
+		*phr=E_OUTOFMEMORY;
+	}
+	return pNewObject;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 入力ピンの接続チェック
+HRESULT CMoFilter::CheckInputType(const CMediaType *mtIn)
+{
+	<font color="#0000FF">// ビデオストリームであること
+	if( *mtIn-&gt;FormatType() != FORMAT_VideoInfo )	return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// メディアタイプのチェック
+	if( MediaCheck( mtIn )!=S_OK )					return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// OK
+	return S_OK;</font>
+}
+
+// 出力ピンの接続チェック
+HRESULT CMoFilter::CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut)
+{
+	<font color="#0000FF">// メディアタイプのチェック
+	if( MediaCheck( mtIn )!=S_OK )		return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// 入力形式と出力形式が同じであること
+	if( *mtIn!=*mtOut )					return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// OK
+	return S_OK;</font>
+}
+
+
+// メディアタイプのチェック
+HRESULT CMoFilter::MediaCheck(const CMediaType *MediaType)
+{
+<font color="#0000FF">	if( IsEqualGUID( *MediaType-&gt;Type(),MEDIATYPE_Video ) )				// Videoか？
+	{
+		if( IsEqualGUID( *MediaType-&gt;Subtype(),MEDIASUBTYPE_RGB32) )	// RGB32ビットタイプか？
+		{
+			VIDEOINFOHEADER *pvi=(VIDEOINFOHEADER *)MediaType-&gt;Format();
+			if( pvi-&gt;bmiHeader.biBitCount == 32 )						// ビットカウントが32ビットであるか？
+			{
+				// OK
+				return S_OK;
+			}
+		}
+	}
+
+	// NG
+	return VFW_E_TYPE_NOT_ACCEPTED;</font>
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// バッファの準備
+HRESULT CMoFilter::DecideBufferSize(IMemAllocator *pAlloc, ALLOCATOR_PROPERTIES *pProperties)
+{
+	<font color="#0000FF">// 入力ピンが接続されていること
+	if( m_pInput-&gt;IsConnected()==FALSE )		return E_UNEXPECTED;
+
+	// バッファサイズを取得
+	pProperties-&gt;cBuffers=1;
+	pProperties-&gt;cbBuffer=m_pInput-&gt;CurrentMediaType().GetSampleSize();
+	ALLOCATOR_PROPERTIES Actual;
+	HRESULT rc;
+	if( FAILED(rc=pAlloc-&gt;SetProperties( pProperties,&amp;Actual )) )	return rc;
+
+	// 確保されたかのチェック
+	if( (pProperties-&gt;cBuffers &gt; Actual.cBuffers) || 
+		(pProperties-&gt;cbBuffer &gt; Actual.cbBuffer) )		return E_FAIL;
+	
+	// OK
+	return S_OK;</font>
+}
+
+// 出力ピンが接続できるメディアタイプを返す
+HRESULT CMoFilter::GetMediaType(int iPosition, CMediaType *pMediaType)
+{
+	<font color="#0000FF">// 入力ピンが接続されていない場合はエラー
+	if( m_pInput-&gt;IsConnected()==FALSE ) 		 return E_UNEXPECTED;
+
+	// 番号のチェック（iPosition==0のみOK）
+	if( iPosition&lt;0 )								 return E_INVALIDARG;		// ０未満
+	if( 0&lt;iPosition )								 return VFW_S_NO_MORE_ITEMS;	// １以上
+	
+	// 入力メディアタイプをそのまま返す
+	*pMediaType=m_pInput-&gt;CurrentMediaType();
+
+	return S_OK;</font>
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 接続完了
+HRESULT CMoFilter::CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin )
+{
+	<font color="#0000FF">// サイズを取得
+	AM_MEDIA_TYPE	*MType=NULL;	// メディアタイプ
+	VIDEOINFOHEADER	*VInfo=NULL;	// ビデオ情報
+	long ImgX=0,ImgY=0;				// ビデオサイズ
+	MType=&amp;m_pInput-&gt;CurrentMediaType();
+	VInfo=(VIDEOINFOHEADER *)(MType-&gt;pbFormat);
+	ImgX=VInfo-&gt;bmiHeader.biWidth;
+	ImgY=VInfo-&gt;bmiHeader.biHeight;	
+
+	// 既に確保していたら解放する
+	if( mImageBuffer!=NULL )
+	{
+		delete[] mImageBuffer;
+		mImageBuffer=NULL;
+	}
+
+	// イメージ保存用バッファの確保
+	mImageBuffer=new long[ImgX*ImgY];
+	memset( mImageBuffer,0,ImgX*ImgY*sizeof(long) );
+
+	return S_OK;</font>
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 転送
+HRESULT CMoFilter::Transform(IMediaSample *pIn, IMediaSample *pOut)
+{
+	<font color="#0000FF">HRESULT rc;
+
+	// 転送
+	if( FAILED(rc=Copy( pIn,pOut )) )		return rc;
+	
+	// 更新
+	if( FAILED(rc=UpdateBitmap( pOut )) )	return rc;
+
+	// OK
+	return S_OK;</font>
+}
+<font color="#0000FF">
+// 入力側のデータを出力側にコピーする
+HRESULT CMoFilter::Copy(IMediaSample *Src, IMediaSample *Dst) const
+{
+	// ビットマップ転送
+	long srcsize=Src-&gt;GetActualDataLength();
+	BYTE *srcbuff,*dstbuff;
+	Src-&gt;GetPointer( &amp;srcbuff );
+	Dst-&gt;GetPointer( &amp;dstbuff );
+	CopyMemory( (void *)dstbuff,(void *)srcbuff,srcsize );
+
+	// タイムスタンプを複写
+	REFERENCE_TIME ts,te;
+	if( SUCCEEDED(Src-&gt;GetTime( &amp;ts,&amp;te )) )		
+		Dst-&gt;SetTime( &amp;ts,&amp;te );
+	LONGLONG	ms,me;
+	if( SUCCEEDED(Src-&gt;GetMediaTime( &amp;ms,&amp;me )) )	
+		Dst-&gt;SetMediaTime( &amp;ms,&amp;me );
+
+	// 同期ポイントを複写
+	HRESULT hr=Src-&gt;IsSyncPoint();
+	if( hr==S_OK )			Dst-&gt;SetSyncPoint( TRUE );
+	else if( hr==S_FALSE )	Dst-&gt;SetSyncPoint( FALSE );
+	else					return E_UNEXPECTED;
+
+	// メディアタイプを複製
+	AM_MEDIA_TYPE *mt;
+	Src-&gt;GetMediaType( &amp;mt );
+	Dst-&gt;SetMediaType( mt );
+	DeleteMediaType( mt );
+
+	// 連続性情報を複写
+	hr=Src-&gt;IsDiscontinuity();
+	if( hr==S_OK )			Dst-&gt;SetDiscontinuity( TRUE );
+	else if( hr==S_FALSE ) 	Dst-&gt;SetDiscontinuity( FALSE );
+	else					return E_UNEXPECTED;
+
+	// バッファ内の有効なデータ長を複写
+	Dst-&gt;SetActualDataLength( Src-&gt;GetActualDataLength() );
+
+	return S_OK;
+}
+
+
+// 出力イメージを更新する
+HRESULT CMoFilter::UpdateBitmap(IMediaSample *MediaSample)
+{
+	// 情報取得
+	BYTE	*BmpBuff=NULL;			// ビットマップ領域の先頭
+	long	BmpBuffSize=0;			// ビットマップ領域のサイズ
+	AM_MEDIA_TYPE	*MType=NULL;	// メディアタイプ
+	VIDEOINFOHEADER	*VInfo=NULL;	// ビデオ情報
+	long ImgX=0,ImgY=0;				// ビデオサイズ
+	MediaSample-&gt;GetPointer( &amp;BmpBuff );
+	BmpBuffSize=MediaSample-&gt;GetSize();
+	MType=&amp;m_pInput-&gt;CurrentMediaType();
+	VInfo=(VIDEOINFOHEADER *)(MType-&gt;pbFormat);
+	ImgX=VInfo-&gt;bmiHeader.biWidth;
+	ImgY=VInfo-&gt;bmiHeader.biHeight;	
+	
+	
+	// イメージの変更
+	BYTE *b0=(BYTE *)mImageBuffer;
+	BYTE *b1=BmpBuff;
+	long d0,d1,dd;
+	long z;
+	for( z=0;z&lt;BmpBuffSize;z++ )
+	{
+		d0=*b0;
+		d1=*b1;
+		dd=(d0*95+d1*5)/100;
+		*b1=(BYTE)dd;
+
+		b0++;
+		b1++;
+	}
+
+	// 現在のフレームを保存しておく
+	CopyMemory( (void *)mImageBuffer,(void *)BmpBuff,BmpBuffSize );
+
+	return S_OK;
+}
+</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>// MoFilter.h: CMoFilter クラスのインターフェイス
+//
+//////////////////////////////////////////////////////////////////////
+
+#if !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)
+#define AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_
+
+#if _MSC_VER &gt; 1000
+#pragma once
+#endif // _MSC_VER &gt; 1000
+
+
+// CmoFilterのクラスID
+// {A6A4E64B-6AAA-4838-AF6C-048CCE72924C}
+static const GUID CLSID_MoFilter = 
+{ 0xa6a4e64b, 0x6aaa, 0x4838, { 0xaf, 0x6c, 0x4, 0x8c, 0xce, 0x72, 0x92, 0x4c } };
+
+
+class CMoFilter : public CTransformFilter  
+{
+public:
+	DECLARE_IUNKNOWN;			// CUnknownのインターフェース定義
+	CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr);
+	virtual ~CMoFilter();
+	static CUnknown *CreateInstance(LPUNKNOWN punk, HRESULT *phr);
+	HRESULT CheckInputType(const CMediaType *mtIn);
+	HRESULT CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut);
+	HRESULT Transform(IMediaSample *pIn, IMediaSample *pOut);
+	HRESULT DecideBufferSize( IMemAllocator *pAlloc,ALLOCATOR_PROPERTIES *pProperties);
+	HRESULT GetMediaType(int iPosition, CMediaType *pMediaType);
+	HRESULT CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin );
+
+
+private:
+<font color="#0000FF">	HRESULT MediaCheck(const CMediaType *MediaType);
+	HRESULT Copy(IMediaSample *Src, IMediaSample *Dst) const;
+	HRESULT UpdateBitmap(IMediaSample *MediaSample);
+
+	long *mImageBuffer;</font>
+};
+
+#endif // !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)
+<font color="#0000FF">
+</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<p>MoFilter.defは変更がありません。</p>
+<p>順に説明しますが、コードの多くはDirectX	 
+SDKにあるフィルタのサンプルから持ってきた通りですので<br>
+そちらも見ながらの方がいいかもしれません（＾＾；<br>
+あとSDKヘルプの<b>「変換フィルタの作成」</b>の所も参考になると思います。<br>
+（そこ見ながら作ったんで）</p>
+<hr>
+<p>◎初期化／開放</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>
+//////////////////////////////////////////////////////////////////////
+// コンストラクタ
+CMoFilter::CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr) :
+	CTransformFilter(tszName, pUnk, CLSID_MoFilter)
+{
+	<font color="#0000FF">mImageBuffer=NULL;</font>
+}
+
+// デストラクタ
+CMoFilter::~CMoFilter()
+{
+	<font color="#0000FF">if( mImageBuffer!=NULL )
+		delete[] mImageBuffer;</font>
+}
+</pre>
+	</td>	
+  </tr>
+</table>
+
+<p><font color="#0000FF">mImageBuffer</font>は映像を保存しておくバッファへのポインタで<br>
+コンストラクタでは初期化しているだけです。<br>
+またデストラクタでは確保されていたら開放しています。</p>
+<hr>
+<p>◎ピンのチェック</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// 入力ピンの接続チェック
+HRESULT CMoFilter::CheckInputType(const CMediaType *mtIn)
+{
+<font color="#0000FF">	// ビデオストリームであること
+	if( *mtIn-&gt;FormatType() != FORMAT_VideoInfo )		  return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// メディアタイプのチェック
+	if( MediaCheck( mtIn )!=S_OK )						 return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// OK
+	return S_OK;</font>
+}
+
+// 出力ピンの接続チェック
+HRESULT CMoFilter::CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut)
+{
+<font color="#0000FF">	// メディアタイプのチェック
+	if( MediaCheck( mtIn )!=S_OK )						 return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// 入力形式と出力形式が同じであること
+	if( *mtIn!=*mtOut )									 return VFW_E_TYPE_NOT_ACCEPTED;
+
+	// OK
+	return S_OK;</font>
+}
+
+<font color="#0000FF">
+// メディアタイプのチェック
+HRESULT CMoFilter::MediaCheck(const CMediaType *MediaType)
+{
+	if( IsEqualGUID( *MediaType-&gt;Type(),MEDIATYPE_Video ) )					// Videoか？
+	{
+		if( IsEqualGUID( *MediaType-&gt;Subtype(),MEDIASUBTYPE_RGB32) ) 	  // RGB32ビットタイプか？
+		{
+			VIDEOINFOHEADER *pvi=(VIDEOINFOHEADER *)MediaType-&gt;Format();
+			if( pvi-&gt;bmiHeader.biBitCount == 32 )						 // ビットカウントが32ビットであるか？
+			{
+				// OK
+				return S_OK;
+			}
+		}
+	}
+
+	// NG
+	return VFW_E_TYPE_NOT_ACCEPTED;
+}</font>
+</pre>
+	</td>	
+  </tr>
+</table>
+
+<p>CheckInputTypeとCheckTransformでは<br>
+このフィルタで有効なメディアタイプであるかをチェックし、<br>
+有効ならS_OK、ダメならエラーを返します。<br>
+<br>
+CheckInputTypeでは入力ピンの接続をチェックします。<br>
+入力ピンに接続できるのはRGBがそれぞれ８ビット毎で<br>
+1ピクセルが４バイトで構成されたストリームだけにしています。<br>
+色々なフォーマットに対応するのは困難なんで（＾＾；<br>
+RGB32タイプでない場合では前後にColorSpaceConverterフィルタが入るので<br>
+それを利用させて頂きます。<br>
+出力ピンでも同様です。</p>
+<hr>
+<p>◎バッファサイズとメディアタイプ</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// バッファの準備
+HRESULT CMoFilter::DecideBufferSize(IMemAllocator *pAlloc, ALLOCATOR_PROPERTIES *pProperties)
+{
+<font color="#0000FF">	// 入力ピンが接続されていること
+	if( m_pInput-&gt;IsConnected()==FALSE )		return E_UNEXPECTED;
+
+	// バッファサイズを取得
+	pProperties-&gt;cBuffers=1;
+	pProperties-&gt;cbBuffer=m_pInput-&gt;CurrentMediaType().GetSampleSize();
+	ALLOCATOR_PROPERTIES Actual;
+	HRESULT rc;
+	if( FAILED(rc=pAlloc-&gt;SetProperties( pProperties,&amp;Actual )) )	return rc;
+
+	// 確保されたかのチェック
+	if( (pProperties-&gt;cBuffers &gt; Actual.cBuffers) || 
+		(pProperties-&gt;cbBuffer &gt; Actual.cbBuffer) )		return E_FAIL;
+	
+	// OK
+	return S_OK;</font>
+}
+
+// 出力ピンが接続できるメディアタイプを返す
+HRESULT CMoFilter::GetMediaType(int iPosition, CMediaType *pMediaType)
+{
+<font color="#0000FF">	// 入力ピンが接続されていない場合はエラー
+	if( m_pInput-&gt;IsConnected()==FALSE )		return E_UNEXPECTED;
+
+	// 番号のチェック（iPosition==0のみOK）
+	if( iPosition&lt;0 )							return E_INVALIDARG;		// ０未満
+	if( 0&lt;iPosition )							return VFW_S_NO_MORE_ITEMS;	// １以上
+	
+	// 入力メディアタイプをそのまま返す
+	*pMediaType=m_pInput-&gt;CurrentMediaType();
+
+	return S_OK;</font>
+}</pre>
+	</td>	
+  </tr>
+</table>
+
+<p>出力ピンに接続する下流のフィルタからの呼び出しに答えるメソッドです。<br>
+<br>
+DecideBufferSizeはバッファのサイズを返します。<br>
+入力ピンのメディアタイプからサイズを取得してます。</p>
+<p>GetMediaTypeは出力できるメディアタイプを返します。<br>
+これも入力と同じメディアタイプを返します。</p>
+<hr>
+<p>◎接続時</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// 接続完了
+HRESULT CMoFilter::CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin )
+{
+	<font color="#0000FF">// サイズを取得
+	AM_MEDIA_TYPE	*MType=NULL;	// メディアタイプ
+	VIDEOINFOHEADER	*VInfo=NULL;	// ビデオ情報
+	long ImgX=0,ImgY=0;				// ビデオサイズ
+	MType=&amp;m_pInput-&gt;CurrentMediaType();
+	VInfo=(VIDEOINFOHEADER *)(MType-&gt;pbFormat);
+	ImgX=VInfo-&gt;bmiHeader.biWidth;
+	ImgY=VInfo-&gt;bmiHeader.biHeight;	
+
+	// 既に確保していたら解放する
+	if( mImageBuffer!=NULL )
+	{
+		delete[] mImageBuffer;
+		mImageBuffer=NULL;
+	}
+
+	// イメージ保存用バッファの確保
+	mImageBuffer=new long[ImgX*ImgY];
+	memset( mImageBuffer,0,ImgX*ImgY*sizeof(long) );
+
+	return S_OK;</font>
+}
+</pre>
+	</td>	
+  </tr>
+</table>
+
+<p>フィルタの接続が完了するとCompleteConnectが呼び出されます。<br>
+<br>
+ここでは映像を保存するための領域を確保しています。<br>
+サイズは親クラスのm_pInputから取得できますので<br>
+ここからサイズ等を取得します。</p>
+<hr>
+<p>◎転送</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// 転送
+HRESULT CMoFilter::Transform(IMediaSample *pIn, IMediaSample *pOut)
+{
+	<font color="#0000FF">HRESULT rc;
+
+	// 転送
+	if( FAILED(rc=Copy( pIn,pOut )) )		return rc;
+	
+	// 更新
+	if( FAILED(rc=UpdateBitmap( pOut )) )	return rc;
+
+	// OK
+	return S_OK;</font>
+}
+<font color="#0000FF">
+// 入力側のデータを出力側にコピーする
+HRESULT CMoFilter::Copy(IMediaSample *Src, IMediaSample *Dst) const
+{
+	// ビットマップ転送
+	long srcsize=Src-&gt;GetActualDataLength();
+	BYTE *srcbuff,*dstbuff;
+	Src-&gt;GetPointer( &amp;srcbuff );
+	Dst-&gt;GetPointer( &amp;dstbuff );
+	CopyMemory( (void *)dstbuff,(void *)srcbuff,srcsize );
+
+	// タイムスタンプを複写
+	REFERENCE_TIME ts,te;
+	if( SUCCEEDED(Src-&gt;GetTime( &amp;ts,&amp;te )) )		
+		Dst-&gt;SetTime( &amp;ts,&amp;te );
+	LONGLONG	ms,me;
+	if( SUCCEEDED(Src-&gt;GetMediaTime( &amp;ms,&amp;me )) )	
+		Dst-&gt;SetMediaTime( &amp;ms,&amp;me );
+
+	// 同期ポイントを複写
+	HRESULT hr=Src-&gt;IsSyncPoint();
+	if( hr==S_OK )			Dst-&gt;SetSyncPoint( TRUE );
+	else if( hr==S_FALSE )	Dst-&gt;SetSyncPoint( FALSE );
+	else					return E_UNEXPECTED;
+
+	// メディアタイプを複製
+	AM_MEDIA_TYPE *mt;
+	Src-&gt;GetMediaType( &amp;mt );
+	Dst-&gt;SetMediaType( mt );
+	DeleteMediaType( mt );
+
+	// 連続性情報を複写
+	hr=Src-&gt;IsDiscontinuity();
+	if( hr==S_OK )			Dst-&gt;SetDiscontinuity( TRUE );
+	else if( hr==S_FALSE ) 	Dst-&gt;SetDiscontinuity( FALSE );
+	else					return E_UNEXPECTED;
+
+	// バッファ内の有効なデータ長を複写
+	Dst-&gt;SetActualDataLength( Src-&gt;GetActualDataLength() );
+
+	return S_OK;
+}
+
+
+// 出力イメージを更新する
+HRESULT CMoFilter::UpdateBitmap(IMediaSample *MediaSample)
+{
+	// 情報取得
+	BYTE	*BmpBuff=NULL;			// ビットマップ領域の先頭
+	long	BmpBuffSize=0;			// ビットマップ領域のサイズ
+	AM_MEDIA_TYPE	*MType=NULL;	// メディアタイプ
+	VIDEOINFOHEADER	*VInfo=NULL;	// ビデオ情報
+	long ImgX=0,ImgY=0;				// ビデオサイズ
+	MediaSample-&gt;GetPointer( &amp;BmpBuff );
+	BmpBuffSize=MediaSample-&gt;GetSize();
+	MType=&amp;m_pInput-&gt;CurrentMediaType();
+	VInfo=(VIDEOINFOHEADER *)(MType-&gt;pbFormat);
+	ImgX=VInfo-&gt;bmiHeader.biWidth;
+	ImgY=VInfo-&gt;bmiHeader.biHeight;	
+	
+	
+	// イメージの変更
+	BYTE *b0=(BYTE *)mImageBuffer;
+	BYTE *b1=BmpBuff;
+	long d0,d1,dd;
+	long z;
+	for( z=0;z&lt;BmpBuffSize;z++ )
+	{
+		d0=*b0;
+		d1=*b1;
+		dd=(d0*95+d1*5)/100;
+		*b1=(BYTE)dd;
+
+		b0++;
+		b1++;
+	}
+
+	// 現在のフレームを保存しておく
+	CopyMemory( (void *)mImageBuffer,(void *)BmpBuff,BmpBuffSize );
+
+	return S_OK;
+}</font>
+</pre>
+	</td>	
+  </tr>
+</table>
+
+<p>Transformは１フレーム毎に呼び出されて、入力から出力に映像を転送してやります。<br>
+このとき映像に手を加えることになります。</p>
+<p>Copyメソッドでは入力のデータをそっくり出力にコピーしています。<br>
+映像だけでなく、タイムスタンプとかメディアタイプとかもコピーしてやります。<br>
+<br>
+UpdateBitmapでは出力側に転送したイメージと<br>
+メモリに確保しておいた前回のイメージをブレンドしています。<br>
+ブレンドの処理は見ての通りいいかげんなやつです（^^;</p>
+<p>最後に次回の為にイメージを保存用メモリにコピーしておきます。<br>
+<br>
+</p>
+<hr>
+<p>以上のソースをコンパイルして出力されたMoFilter.axをRegsvr32でレジストリに登録すれば<br>
+GraphEditなどで使うことが出来ます。<br>
+<br>
+登録したフィルタはDirectShow   
+Filtersカテゴリに入っていると思いますので、<br>
+それをグラフに入れて、Render Media Fileなどを行えば<br>  
+あとは上手いことグラフを作ってくれると思います。<br>
+<br>
+全<a href="MoFilter.lzh">ソース</a>はこちらになります。</p>
+<hr>
+<p>SDKサンプルにはコントラストを変更したり、エンボス加工したりできるフィルタのサンプルがありますので<br>
+それを改造するだけで結構簡単にオリジナルの変換フィルタは作れると思います。<br>
+ちゃんとしたフィルタを作るならフィルタの構造よりも画像処理などの技術の方が難しいですが。</p>
+<p>サンプルで面白と思ったのは、<b>scope</b>ってやつです。<br>
+オーディオ用のレンダリングフィルタで登録すると<b>Oscilloscope</b>という名前で登録されます。<br>
+<br>
+<img border="0" src="dshow61.jpg" width="1427" height="393"></p>
+<p>こんな感じでInfinitePinTeeFilterを使って<br>
+通常のオーディオレンダリングフィルタと並列に配置します。<br>
+<br>
+<img border="0" src="dshow62.jpg" width="462" height="273"></p>
+<p>Oscilloscopeフィルタをグラフに追加したときにこのようなウィンドウが開いて、<br>
+メディアを再生するとリアルタイムに再生される音声の波形を見ることが出来ます。<br>
+<br>
+何に使えるのかはさておき、見てるだけで楽しいですよ(^^;</p>
+<p>　</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

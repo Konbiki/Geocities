@@ -1,0 +1,397 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC">
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p>２．ライブ動画の再生</p>
+<p>いわゆるWebカメラなどといわれるカメラの映像を表示する方法を説明します。</p>
+<p>私が使用したカメラは'Che-es! SPYZというワゴンセールで買ってきた安物のUSBカメラです。<br>     
+（メーカーさんごめんなさい。おもちゃとしては最高です。フォローになってない？ｗ）</p>
+<p>まずは<b><font color="#FF00FF">GraphEdit</font></b>でグラフを作ってみます。<br>
+GraphEditはプログラムを書く前（もちろんデバッグ中も）の検証にかなり便利です。</p>
+<p>GraphEditを起動した直後は下記のようにグラフが空の状態です。<br>
+<img border="0" src="dshow21.gif" width="617" height="320"><br>
+<br>
+まずカメラのフィルタをグラフに追加します。<br>
+メニュー「Graph」－「Insert Filters」をクリックすると下記のようなダイアログが開きます。<br>     
+（<img border="0" src="dshow26.gif" width="23" height="22">ボタン押下でも可能）</p>
+<p><img border="0" src="dshow22.gif" width="533" height="308"></p>
+<p>このダイアログを開いたままでもメインのウィンドウは操作できるので、<br>
+メインウィンドウと重ならない位置にウィンドウを移動しておきましょう。</p>
+<p>フィルタはかなりの数があり、「<font color="#FF00FF"><b>カテゴリ</b></font>」毎に分けられています。<br>
+上の<b>Audio Cpature Sources</b>や<b>Audio Compressors</b>がカテゴリ名になります。</p>
+<p>カメラのフィルタは「<b>Video Capture Souces</b>」カテゴリにあります。<br>
+カテゴリを開くとそのカテゴリに属するフィルタが表示されます。<br>
+（フィルタをさらに開くとフィルタのピンなどに関する情報もみれます）<br>
+<br>
+上図では２つのVideo Capture Soucesフィルタがカテゴリに表示されています。<br>    
+Conexant CaptureフィルタはTVキャプチャボードのフィルタです。<br>    
+今回は下の<b><font color="#FF00FF">STV0680 Camera</font></b>フィルタを使います。<br>
+（なおこのフィルタはカメラ付属のドライバをインストールすれば現れます）<br>
+<br>
+<font size="2" color="#008080">OSをWindowsXPにしたついでに<a href="http://www.che-ez.com/download/index.html">Che-es!のサイト</a>から新しいドライバをダウンロードして入れたら<br>
+ここで説明してるのと違う名前になっちゃいました(^^;<br>
+まぁ他のカメラも似たようなもんなんで大丈夫でしょう（＾＾；；</font></p>
+<p>グラフに追加するには選択してInsertFilterボタンを押すか、フィルタをダブルクリックします。<br>
+するとメインウィンドウに下記のようにフィルタが追加されます。<br>
+<img border="0" src="dshow23.gif" width="617" height="320"></p>
+<p>(ダイアログが重なっていると見えないかもしれないので移動してください）</p>
+<p>続いて実際に画面に表示する「<font color="#FF00FF"><b>レンダラ</b></font>」フィルタを追加します。<br>
+「DirectShow Filters」カテゴリにある「Video Renderer」フィルタを追加します。<br>   
+<img border="0" src="dshow24.gif" width="702" height="323"></p>
+<p>WindowsXPではVideoRendererフィルタが2種類存在します。（どっちでもかまいません）<br>
+<br>
+ピンの名前は「InputX」又は「VMR InputX」となります。<br> 
+「Input」は古いやつです。<br>
+<br>
+VMRというのは「<b>Video Mixing Renderer</b>」のことで<br>
+複数の画像をそれぞれアルファ値(透明度）を指定して<br>
+重ね合わせて表示できるレンダラになります。<br>
+（２つの動画を一つのレンダラに繋げて、<br>
+　じわ～と動画を切り替えるようなことができます。ちょっと面白いけど、使い道がむず・・・）</p>
+<p>この状態で２つフィルタを接続してみます。<br>
+STV0680Cameraフィルタの出力ピン「~Capture」ピンをドラッグし、<br>
+VideoRendererフィルタの入力ピン「VMR Input0」（又は「Input0」）にドロップします。<br>   
+すると下記のように接続されます。<br>
+<br>
+<img border="0" src="dshow25.gif" width="702" height="226"></p>
+<p>ちなみに切断するには矢印を選択して（青色になる）Deleteキーを押せば切断できます。<br>
+<br>
+追加した２つのフィルタの間に「<font color="#FF00FF"><b>Color  
+Space Converter</b></font>」というフィルタが入っていますが、<br> 
+これは環境によっては入りません。<br>
+STV0680フィルタのピンで右クリックしプロパティを見てもらうとわかるのですが、<br>
+STV0680フィルタのCaptureピンはRGB24 という形式になってます。<br>   
+これは２４ビット／ピクセルの形式であることを意味します。<br>
+（１ピクセルが24ビット＝３バイトで表現されるということです）<br>
+ところがVideoRendererフィルタは現在の画面モードと同じ形式しか受け付けません。<br>
+つまり画面モードが24ビットカラー（Highカラー）モードでない場合は、直接接続できないことを意味します。<br>
+そんなときに使用されるのがこのColorSpaceConverterで、<br>
+RGB24からRGB565（１６ビット／ピクセル）などに変換してくれるフィルタな訳です。<br>
+普通このようにフィルタを接続するときに間に変換フィルタが必要なときは<br>
+自動的に必要なフィルタを追加してくれます。（GraphEditではConnect    
+Inteligentがチェックされてるとき）<br>
+間にフィルタが入ってほしくない場合はConnect Inteligentのチェックをはずします。<br>   
+（普通はチェックしておいて問題ありません）<br>
+<br>
+ちなみに~Captureピンで右クリックし<br>
+ポップアップウィンドウから「Render Pin」をクリックすると<br>   
+ドラッグ＆ドロップと同様にVideoRendererまで接続してくれます。</p>
+<p>これでグラフが完成したので再生してみましょう。<br>
+<img border="0" src="dshow27.gif" width="23" height="22">ボタンを押すか、メニュー「Graph」－「Play」をクリックします。<br>
+別ウィンドウにカメラのライブ映像が表示されたと思います。</p>
+<p>実はSTV0680フィルタを追加し、出力ピン「Render Pin」すると<br>  
+自動的にVideoRendererを追加しグラフを完成してくれます（＾＾；<br>
+Renderという昨日はレンダラフィルタまで繋げることを意味しますので覚えておきましょう。<br>
+<br>
+またSTV0680フィルタには出力ピンが２つあります。<br>
+「~Capture」と「Preview」です。カメラによっては名前が違いますし、１つだったりします。<br>
+~CaptureとPreviewの違いは同期信号があるかないかの違いのようです（SPZの場合）。<br>
+この違いはファイルに保存する場合に影響してきます。</p>
+<p><br>
+VBでライブ映像を表示するには、以上の操作をVBから行いグラフを作って実行すればいいことになります。</p>
+<p>で、実際のコードが下記になります。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br>	  
+	  <br>
+	  'カメラのフィルタ名<br>
+	  Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"	   'Che-es! SPYZ<br>	  
+	  Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br>   
+	  <br>
+	  'フィルタグラフマネージャ<br>
+	  Private mGrp As QuartzTypeLib.FilgraphManager<br>   
+	  <br>
+	  Private Sub Form_Load()<br>	  
+	  <br>
+      　　'グラフマネージャの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br>	  
+	  <br>
+      　　'グラフにキャプチャ（カメラ）フィルタを追加する<br>
+      　　Dim cameraflt As QuartzTypeLib.IFilterInfo<br>	  
+      　　Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br>	  
+      　　If cameraflt Is Nothing Then<br> 
+      　　　　MsgBox "カメラ'" + CAMERA_FILTER_NAME + "'が見つかりません。" + vbCrLf + "カメラの名前を確認してください。"<br> 
+      　　　　Exit Sub<br> 
+      　　End If<br> 
+	  <br>
+      　　'グラフにビデオレンダラフィルタを追加する<br>
+      　　AddFilter mGrp, "Video Renderer"<br>	  
+	  <br>
+      　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br>	  
+      　　    On Error Resume Next<br> 
+      　　    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br> 
+      　　    If Err Then<br> 
+      　　　　        MsgBox "カメラのピン'" + CAMERA_OUTPUTPIN_NAME$ + "'が見つかりません。" + vbCrLf + "ピンの名前を確認してください。"<br> 
+      　　　　        Exit Sub<br> 
+      　　    End If<br> 
+      　　On Error GoTo 0<br> 
+	  <br>
+      　　'カメラの出力ピンからフィルタを接続し、グラフを構築する<br>
+      　　camerapin.Render<br>
+	  <br>
+      　　'ビデオサイズ(縦横)を取得<br>
+      　　Dim bv As QuartzTypeLib.IBasicVideo<br>	  
+      　　Dim vx&amp;, vy&amp;<br>	  
+      　　Set bv = mGrp<br>   
+      　　bv.GetVideoSize vx, vy<br>	  
+	  <br>
+      　　'ビデオサイズに合わせてウィンドウを調整<br>
+      　　Dim winx&amp;, winy&amp;	  'ウィンドウの縁サイズ<br>   
+      　　Me.ScaleMode = vbTwips<br>	  
+      　　winx = Me.Width - Me.ScaleWidth<br>	  
+      　　winy = Me.Height - Me.ScaleHeight<br>   
+      　　Me.Width = winx + vx * Screen.TwipsPerPixelX<br>	  
+      　　Me.Height = winy + vy * Screen.TwipsPerPixelY<br>   
+	  <br>
+      　　'ウィンドウ内で動画を再生させる<br>
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br>	  
+      　　Set vw = mGrp<br>   
+      　　vw.WindowStyle = &amp;H40000000 'WS_CHILD<br>   
+      　　vw.SetWindowPosition 0, 0, vx, vy<br>   
+      　　vw.Owner = Me.hWnd<br>	  
+	  <br>
+      　　'再生<br>
+      　　mGrp.Run<br>
+	  <br>
+	  End Sub<br>	  
+	  <br>
+	  <br>
+	  <br>
+	  'レジストリに登録されているフィルタをグラフに追加する<br>
+	  Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br>	  
+      　Dim regflt As QuartzTypeLib.IRegFilterInfo<br>	  
+      　For Each regflt In Grp.RegFilterCollection<br>	  
+      　　If regflt.Name = FilterName$ Then<br>   
+      　　　regflt.Filter AddFilter<br>   
+      　　Exit Function<br>   
+      　End If<br>	  
+      　Next<br>
+	  End Function<br>	  
+	  </code></td>
+  </tr>
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">　</td>
+  </tr>
+</table>
+<p>前回同様、順に説明していきます。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>'カメラのフィルタ名<br>
+	  Private Const CAMERA_FILTER_NAME$ = "STV0680 Camera"	   'Che-es! SPYZ<br>	  
+	  Private Const CAMERA_OUTPUTPIN_NAME$ = "~Capture"<br>   
+	  <br>
+	  'フィルタグラフマネージャ<br>
+	  Private mGrp As QuartzTypeLib.FilgraphManager<br>   
+	  <br>
+	  Private Sub Form_Load()<br>	  
+	  <br>
+      　　	  'グラフマネージャの作成<br>  
+      　　	  Set mGrp = New QuartzTypeLib.FilgraphManager</code></td>	   
+  </tr>
+</table>
+<p>モジュールセクションでは前回同様、定数の定義とフィルタグラフマネージャの変数定義を行います。<br>
+定数CAMERA_FILTER_NAME$はカメラのフィルタ名を指定しています。<br>
+定数CAMERA_OUTPUTPIN_NAME$はカメラの出力ピン名を指定しています。<br>
+<font size="5"><font color="#FF0000">これらは環境に合わせて変えてください</font>。</font><br>
+<br>
+フィルタグラフマネージャオブジェクトの作成までは前回と同じです。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　'グラフにキャプチャ（カメラ）フィルタを追加する<br> 
+      　　Dim cameraflt As QuartzTypeLib.IFilterInfo<br>	  
+      　　Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)<br> 
+      　　    If cameraflt Is Nothing Then<br> 
+      　　　　        MsgBox "カメラ'" + CAMERA_FILTER_NAME + "'が見つかりません。" + vbCrLf + "カメラの名前を確認してください。"<br> 
+      　　　　        Exit Sub<br> 
+      　　    End If</code></td>	   
+  </tr>
+</table>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>'レジストリに登録されているフィルタをグラフに追加する<br>
+	  Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br>	  
+      　	Dim regflt As QuartzTypeLib.IRegFilterInfo<br>	  
+      　	For Each regflt In Grp.RegFilterCollection<br>	  
+      　　		  If regflt.Name = FilterName$ Then<br>   
+      　　　			regflt.Filter AddFilter<br>   
+      　　			  Exit Function<br>   
+      　		End If<br>	  
+      　	Next<br>  
+	  End Function</code></td>	   
+  </tr>
+</table>
+<p>グラフにカメラのフィルタを追加しています。<br>
+<b><font color="#FF00FF">IFilterInfo</font></b>オブジェクトはグラフに追加されたフィルタを表す型で、<br>
+<b>AddFilter関数</b>は下部で定義しているユーザ関数です。<br>
+AddFilter関数でなにをやっているかというと、レジストリに登録されているフィルタを順に調べていって<br>
+目的の名前を持つフィルタを見つけたら、それをグラフに追加します。<br>
+で、戻り値としてIFilterInfoをを返します。</p>
+<p>レジストリに登録されているフィルタはフィルタグラフマネージャのメンバである<br>
+<b><font color="#FF00FF">RegFilterCollection</font></b>コレクションで列挙することができます。<br>
+<font color="#FF00FF"><b>IRegFilterInfo</b></font>型の変数に入れて<font color="#FF00FF"><b>Name</b></font>プロパティを見れば名前を取得できます。<br>
+<br>
+フィルタをグラフに入れるには<font color="#FF00FF"><b>Filter</b></font>メソッドを使います。<br>
+引数として登録されたフィルタを示すIFilterInfoオブジェクトの変数を指定します。<br>
+ややこしいですが、<br>
+<br>
+（１）RegFilterCollectionコレクションを検索する（名前で検索）<br>
+<br>
+（２）目的のフィルタを示すIRegFilterInfoオブジェクトを<br>
+　　RegFilterCollectionコレクションから取得する。<br>
+<br>
+（３）Filterメソッドでグラフに追加<br>
+<br>
+の流れになります。<br>
+ IFilterInfo型を返しているのは後で必要になるためです。<br>
+<br>
+<font color="#FF0000">「カメラ'～'が見つかりません」が表示される場合は、<br>
+　　カメラが接続されていないか、<br>
+　　ドライバがインストールされていないか、<br>
+　　<b>カメラのフィルタ名が間違っている</b><br>
+のが原因でしょう。<br>
+<br>
+カメラやドライバによってカメラのフィルタ名は変わるので<br>
+GraphEdit等で確認しておいてください。<br>
+（上のサンプルコードは家のChe-ez!SPYZ用の設定です）<br>
+<br>
+名前ではなく今接続されているカメラを使いたいって場合は<br>
+カメラフィルタ(キャプチャフィルタ)の列挙が必要になります。<br>
+これは「５．フィルタグラフ操作用DLL」で公開しているようなDLLが必要になります。</font></p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　'グラフにビデオレンダラフィルタを追加する<br>
+      　　AddFilter mGrp, "Video Renderer"<br>	 
+	  </code></td>	
+  </tr>
+</table>
+<p>同様にAddFIlter関数でVideoRendererフィルタを追加しています。<br>
+こっちの戻り値は必要ないんで保存してません。<br>
+っていうか実はこの行は不要なんです（笑<br>
+（下のRenderメソッドでなければ自動的に追加されますんで）</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br>	 
+      　　On Error Resume Next<br> 
+      　　cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br> 
+      　　If Err Then<br> 
+      　　　　MsgBox "カメラのピン'" + CAMERA_OUTPUTPIN_NAME$ + "'が見つかりません。" + vbCrLf + "ピンの名前を確認してください。"<br> 
+      　　　　Exit Sub<br> 
+      　　End If<br> 
+      　　On Error GoTo 0<br> 
+      </code></td>	
+  </tr>
+</table>
+<p>カメラの出力ピンを名前をキーにして取得しています。<br>
+AddFIlter関数の戻り値であるIFilterInfoのFindPinメソッドで簡単に探すことができます。<br>
+メソッドの戻り値がピンを表すIPinInfo型ではなく、<br>
+引数として渡すことに注意してください。<br>
+<br>
+<font color="#FF0000">ここで「カメラのピン’～’が見つかりません」と出る場合は<br>
+カメラのピンの名前（<code>CAMERA_OUTPUTPIN_NAME</code>）が間違っています。<br>
+GraphEdit等で確認してください。<br>
+<br>
+もしGraphEditで文字化けで見れないなんて場合は<br>
+下記のように書き換えてみてください。</font></p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　'カメラの出力ピンを取得<br>
+      　　Dim camerapin As QuartzTypeLib.IPinInfo<br> 
+      <font color="#008000">'    On Error Resume Next<br> 
+      '    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin<br> 
+      '    If Err Then<br> 
+      '        MsgBox "カメラのピン'" + CAMERA_OUTPUTPIN_NAME$ + "'が見つかりません。" + vbCrLf + "ピンの名前を確認してください。"<br> 
+      '        Exit Sub<br> 
+      '    End If<br> 
+      '    On Error GoTo 0</font><br> 
+      <br>
+      　　Dim pp As QuartzTypeLib.IPinInfo<br> 
+      　　For Each pp In cameraflt.Pins<br> 
+      　　　　If pp.Direction = 1 Then<br> 
+      　　　　　　Set camerapin = pp<br> 
+      　　　　　　Exit For<br> 
+      　　　　End If<br> 
+      　　Next<br>
+      　　　If camerapin Is Nothing Then<br> 
+      　　　　MsgBox "出力ピンが見つかりません。"<br> 
+      　　End If<br> 
+      </code></td>	
+  </tr>
+</table>
+<p><font color="#FF0000">上のコードは最初に見つかった出力ピンを使用します。<br>
+複数の出力ピンがあるカメラもあるので、<br>
+本来はメディアタイプなどを調査すべきなんですが<br>
+面倒なので省略します。（＾＾；</font></p>
+<p>　</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 'カメラの出力ピンからフィルタを接続し、グラフを構築する<br> 
+      　　	  camerapin.Render</code><code><br> 
+	  </code></td>	
+  </tr>
+</table>
+<p>上で取得したピンでRenderメソッドを呼び出し、VideoRendererフィルタまでつなげ<br>
+グラフを完成させます。<br>
+GraphEditでドラッグ＆ドロップしたのと同様です。<br>
+（正確にはポップアップメニューからRenderPinを行ったの同じです。<br>
+　ドラッグ＆ドロップの場合は、VideoRendererの出力ピンを取得し<br>
+　Connectメソッドを呼び出す行為になります。）</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　	 'ビデオサイズ(縦横)を取得<br> 
+      　　	  Dim bv As QuartzTypeLib.IBasicVideo<br>	 
+      　　	  Dim vx&amp;, vy&amp;<br>	 
+      　　	  Set bv = mGrp<br>  
+      　　	  bv.GetVideoSize vx, vy<br>	 
+	  <br>
+      　　	  'ビデオサイズに合わせてウィンドウを調整<br> 
+      　　	  Dim winx&amp;, winy&amp;	  'ウィンドウの縁サイズ<br>  
+      　　	  Me.ScaleMode = vbTwips<br>	 
+      　　	  winx = Me.Width - Me.ScaleWidth<br>	 
+      　　	  winy = Me.Height - Me.ScaleHeight<br>  
+      　　	  Me.Width = winx + vx * Screen.TwipsPerPixelX<br>	 
+      　　	  Me.Height = winy + vy * Screen.TwipsPerPixelY<br>  
+	  <br>
+      　　	  'ウィンドウ内で動画を再生させる<br> 
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br>	 
+      　　	  Set vw = mGrp<br>  
+      　　	  vw.WindowStyle = &amp;H40000000 'WS_CHILD<br>  
+      　　	  vw.SetWindowPosition 0, 0, vx, vy<br>  
+      　　	  vw.Owner = Me.hWnd<br>	 
+	  <br>
+      　　	  '再生<br> 
+      　　	  mGrp.Run<br> 
+	  <br>
+	  End Sub</code><code><br> 
+	  </code></td>	
+  </tr>
+</table>
+<p>以下は前回と同じで、<br>
+映像サイズに合わせてフォームサイズを設定しフォーム内で再生するようにする設定です。<br>
+<br>
+</p>
+<p>まとめるとこんな感じです。</p>
+<p>１．FilgraphManagerオブジェクトを作成</p>
+<p>２．カメラフィルタをRegFilterCollectionコレクションから検索</p>
+<p>３．カメラフィルタをFilterメソッドでグラフに追加</p>
+<p>４．同様にVideoRendererフィルタをグラフに追加（Renderメソッドを使うなら不要）</p>
+<p>５．Renderメソッド（或いはConnectメソッド）でフィルタを接続</p>
+<p>６．Runメソッドで開始</p>
+<p>　</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

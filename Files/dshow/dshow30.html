@@ -1,0 +1,232 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p>７．DVDの再生</p>
+<p>DirectShowではDVDの再生もサポートしています。<br>
+おかげでDVDの仕組みなんて知らなくとも<font size="5">VBでDVDの再生</font>が楽に行えます。<br>
+（再生だけならね＾＾；。メニューや再生速度の操作とかはVBだけでは無理です）<br>
+ただし、DVDは大人の都合の塊なので動作に関しては環境に依存することを心しておいて下さい。</p>
+
+<hr>
+<p>DirectShowはDVD再生をサポートしていますが、<br>
+残念ながら<font size="5">DVDのコーディックデコーダは付属してません</font>。<br>
+（ライセンスやら独禁法やら規格の広さやらの<font size="5">大人の都合</font>があるんでしょう。）</p>
+
+<p>というわけでDVDのデコーダをインストールしなければなりません。<br>
+これは適当なDVD再生ソフトをインストールすれば大抵OKです。<br>
+私はInterVideo社の「<b>WinDVD4</b>」というのを入れてます。（CD-Rドライブについてたやつです）<br>
+WindowsMediaPlayer等でDVDが再生できるようなっていれば大丈夫です。</p>
+
+<p>DVD再生ソフトをインストールするんだったら、そっちで見た方がいいんじゃないかって？<br>
+そんなの当たり前です。（笑<br>
+でも少しでも自分でやるって所にロマンを感じましょうよ（＾＾；</p>
+
+<hr>
+<p>DVDを再生するためのグラフは下記のようになります。</p>
+
+<p><img border="0" src="dshow31.jpg" width="826" height="388"></p>
+
+<p>「DVD Navigator」というフィルタがソースフィルタになり、<br> 
+「Video」と「SubPicture」がビデオデコーダ経由でビデオレンダラに、<br>
+「AC3」がオーディオデコーダ経由でオーディオレンダラにつながります。</p>
+<p>ちなみに「SubPicture」とは字幕のことです。</p>
+<p>ビデオデコーダとオーディオデコーダはよく見てもらうとわかるのですが、<br>
+InterVideo社のものです。ここはインストールしたDVD再生ソフトによって変わってくるでしょう。（他はしらん）</p>
+<p>とりあえず上のグラフを生成して実行すればDVDが再生されます。<br>
+（ただし、メニューとかの操作はできませんので、映像特典とかは見れないかも・・・）</p>
+<p>上記のグラフを作成するコードは以下になります。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br> 
+      <br>
+      'グラフマネージャ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      'フォームロード時<br>
+      Private Sub Form_Load()<br> 
+      <br>
+      　　'グラフの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      　　'DVD Navigatorフィルタをグラフに追加<br> 
+      　　Dim dvdnavi As QuartzTypeLib.IFilterInfo<br> 
+      　　Set dvdnavi = AddFilter(mGrp, "DVD Navigator")<br> 
+      <br>
+      　　'DVD Navigatorフィルタの各ピンを接続する<br> 
+      　　Dim pp As QuartzTypeLib.IPinInfo<br> 
+      　　For Each pp In dvdnavi.Pins<br> 
+      　　　　pp.Render<br>
+      　　Next<br>
+      <br>
+      　　'ビデオサイズ(縦横)を取得<br>
+      　　Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　Dim vx&amp;, vy&amp;<br> 
+      　　Set bv = mGrp<br> 
+      　　bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　'ビデオサイズに合わせてウィンドウを調整<br>
+      　　Dim winx&amp;, winy&amp; 'ウィンドウの縁サイズ<br> 
+      　　Me.ScaleMode = vbTwips<br> 
+      　　winx = Me.Width - Me.ScaleWidth<br> 
+      　　winy = Me.Height - Me.ScaleHeight<br> 
+      　　Me.Width = winx + vx * Screen.TwipsPerPixelX<br> 
+      　　Me.Height = winy + vy * Screen.TwipsPerPixelY<br> 
+      <br>
+      　　'ウィンドウ内で動画を再生させる<br>
+      　　Dim vw As QuartzTypeLib.IVideoWindow<br> 
+      　　Set vw = mGrp<br> 
+      　　vw.WindowStyle = &amp;H40000000 'WS_CHILD<br> 
+      　　vw.SetWindowPosition 0, 0, vx, vy<br> 
+      　　vw.Owner = Me.hWnd<br> 
+      <br>
+      　　'再生<br>
+      　　mGrp.Run<br>
+      <br>
+      End Sub<br> 
+      <br>
+      <br>
+      'レジストリに登録されているフィルタをグラフに追加する<br>
+      Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br> 
+      　　Dim regflt As QuartzTypeLib.IRegFilterInfo<br> 
+      　　For Each regflt In Grp.RegFilterCollection<br> 
+      　　　　If regflt.Name = FilterName$ Then<br> 
+      　　　　　　regflt.Filter AddFilter<br> 
+      　　　　　　Exit Function<br> 
+      　　　　End If<br> 
+      　　Next<br>
+      End Function<br> 
+	  </code></td>
+  </tr>
+</table>
+<p>（他のサンプル同様に「<b><font color="#FF0000">ActiveMovie control type library</font></b>」を参照設定してください。）</p>
+<p>実行させるといきなりDVDを再生します。（実行する前にディスクを入れといてください）</p>
+<p>　</p>
+<p>順に説明します。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>Option Explicit<br> 
+      <br>
+      'グラフマネージャ<br>
+      Private mGrp As QuartzTypeLib.FilgraphManager<br> 
+      <br>
+      'フォームロード時<br>
+      Private Sub Form_Load()<br> 
+      <br>
+      　　'グラフの作成<br>
+      　　Set mGrp = New QuartzTypeLib.FilgraphManager	  
+	  </code></td> 
+  </tr>
+</table>
+<p>グラフマネージャオブジェクトの定義とグラフの作成を行います。<br>
+この辺は「<a href="dshow1.html">１．動画の再生</a>」と同じですので、そちらを参照してください。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    'DVD Navigatorフィルタをグラフに追加<br> 
+      　　    Dim dvdnavi As QuartzTypeLib.IFilterInfo<br> 
+      　　    Set dvdnavi = AddFilter(mGrp, "DVD Navigator")<br> 
+	  </code></td>
+  </tr>
+</table>
+<p>グラフに「<b><font color="#FF00FF">DVD Navigator</font></b>」フィルタを追加します。<br>
+<b><font color="#FF00FF">DVD Navigator</font></b><b>フィルタ</b>は大変高機能なフィルタで、DVDに関するほぼ全ての操作が出来るらしいです。<br>
+（すいません、全機能を試した訳ではないのです^^;）<br>
+<br>
+このフィルタがDVD-ROMからDVDの規格にしたがってファイルを読み込み、<br>
+映像、音声、字幕情報に分割してくれます。（とっても楽ですね）</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　'DVD Navigatorフィルタの各ピンを接続する<br> 
+      　　Dim pp As QuartzTypeLib.IPinInfo<br> 
+      　　For Each pp In dvdnavi.Pins<br> 
+      　　　　pp.Render<br>
+      　　Next<br>
+	  </code></td>
+  </tr>
+</table>
+<p>初めに示したグラフを見てもらうとわかりますが、<br>
+<b><font color="#FF00FF">DVD Navigator</font></b><b>フィルタ</b>は３つの出力ピンがあります。<br>
+上のコードでは<b><font color="#FF00FF">DVD Navigator</font></b>フィルタの<font color="#FF00FF"><b>Pins</b></font>コレクションで全てのピンを列挙し、<br>
+それぞれのピンの下流を<font color="#FF00FF"><b>Render</b></font>メソッドで作ります。<br>
+（どんなフィルタが使われるかはDirectShowに任せます。）</p>
+<p>これだけでグラフの生成は終了です。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>　　    'ビデオサイズ(縦横)を取得<br>
+      　　    Dim bv As QuartzTypeLib.IBasicVideo<br> 
+      　　    Dim vx&amp;, vy&amp;<br> 
+      　　    Set bv = mGrp<br> 
+      　　    bv.GetVideoSize vx, vy<br> 
+      <br>
+      　　    'ビデオサイズに合わせてウィンドウを調整<br>
+      　　    Dim winx&amp;, winy&amp; 'ウィンドウの縁サイズ<br> 
+      　　    Me.ScaleMode = vbTwips<br> 
+      　　    winx = Me.Width - Me.ScaleWidth<br> 
+      　　    winy = Me.Height - Me.ScaleHeight<br> 
+      　　    Me.Width = winx + vx * Screen.TwipsPerPixelX<br> 
+      　　    Me.Height = winy + vy * Screen.TwipsPerPixelY<br> 
+      <br>
+      　　    'ウィンドウ内で動画を再生させる<br>
+      　　    Dim vw As QuartzTypeLib.IVideoWindow<br> 
+      　　    Set vw = mGrp<br> 
+      　　    vw.WindowStyle = &amp;H40000000 'WS_CHILD<br> 
+      　　    vw.SetWindowPosition 0, 0, vx, vy<br> 
+      　　    vw.Owner = Me.hWnd<br> 
+      <br>
+      　　    '再生<br>
+      　　    mGrp.Run<br>
+      <br>
+      End Sub<br> 
+      <br>
+      <br>
+      'レジストリに登録されているフィルタをグラフに追加する<br>
+      Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo<br> 
+      　　    Dim regflt As QuartzTypeLib.IRegFilterInfo<br> 
+      　　    For Each regflt In Grp.RegFilterCollection<br> 
+      　　　　        If regflt.Name = FilterName$ Then<br> 
+      　　　　　　            regflt.Filter AddFilter<br> 
+      　　　　　　            Exit Function<br> 
+      　　　　        End If<br> 
+      　　    Next<br>
+      End Function	  
+	  </code></td>
+  </tr>
+</table>
+<p>以降は「<a href="dshow1.html">１．動画の再生</a>」と同じ様に、<br>
+フォームのサイズを動画の再生サイズに合わせてフォームの中で動画を再生させる為のコードになります。<br>
+またAddFilter関数は「<a href="dshow2.html">２．ライブ動画の再生</a>」で使用したものと同じで<br>
+名前によってフィルタをグラフに追加する関数です。</p>
+
+<p>以上でVBからDVDの再生が行えます。</p>
+
+<hr>
+<p>手順としてはUSBカメラの画像を表示するより簡単ですね。</p>
+
+<p>自前でDVDを再生できるんなら「<a href="dshow3.html">３．キャプチャ</a>」でやった方法を使って<br>
+DVDの内容を簡単にDivX形式などに変換して<br>
+保存できるのではないかと考える人もいると思います。</p>
+
+<p>ところが<font size="5">そうは大人の都合が許しません</font>。（笑</p>
+
+<p>静止画のスナップもここで紹介している方法では無理です（＾＾；</p>
+
+<p>なぜなのか知りたい方はGraphEditでグラフを作り<br>
+レンダラ入力ピンのプロパティで形式を見て考えて見てください。</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

@@ -1,0 +1,775 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p><b>４</b><b>．オリジナルフィルタの作成</b></p>
+<p>オリジナルのフィルタを作成する方法を紹介します。<br>
+フィルタの作成方法は色々あるのですが、<br>
+ここで紹介するのはかなり泥臭い部類です（＾＾；</p>
+<p>フィルタはVBでは作れないのでVC++を使用します。<br>
+C++で作成することになりますが、Cを知っていればわかる程度のものです。<br>
+なにせ私がC++をベターCとして使うぐらいの知識しかないんですから（笑</p>
+<p>◎基底クラスの作成</p>
+<p>まず前準備としてやらなければならないことがあります。<br>
+DirectShowのフィルタを作るにはDirectShowの<font color="#FF00FF"><b>基底クラス</b></font>を使う必要があります。<br>
+基底クラスを使う場合は<font color="#FF00FF"><b>Strmbase.lib</b></font>又は<font color="#FF00FF"><b>Strmbasd.lib</b></font>をリンクする必要があるのですが、<br>
+このライブラリは自前で作らないといけません。<br>
+作るといってもSDK付属のプロジェクトをビルドするだけでOKです。<br>
+<br>
+<b><i>(SDKインストールフォルダ)</i>\Samples\Multimedia\DirectShow\BaseClasses</b></p>
+<p>ここにある<font color="#FF00FF"><b>baseclasses.dsw</b></font>をVC++で開いてビルドします。<br>
+Strmbase.libはリテールライブラリでStrmbasd.libはデバッグ用です。</p>
+<p>◎プロジェクトの新規作成</p>
+<p>VC++を起動して新規作成のダイアログを開いたら「<b><font color="#FF00FF">Win32 
+Dynamic-Link Library</font></b>」を選択します。<br>
+フィルタは拡張子が「ax」ですが中身はDLLです。（そう思えば少し簡単に感じない？笑）<br>
+次の画面のDLLの種類は「<font color="#FF00FF"><b>空のDLLプロジェクト</b></font>」を選択してください。</p>
+<p>◎プロジェクトの設定</p>
+<p>メニュー「プロジェクト」－「設定」のダイアログでビルドするための設定を行います。<br>
+デフォルト以外で変更する必要があるものは以下です。（DEBUGビルド用）</p>
+<table border="1" width="100%" bgcolor="#FFFFFF">
+  <tr>
+	<td width="9%" align="center">タグ</td>
+	<td width="15%" align="center">カテゴリ</td>
+	<td width="36%" align="center">項目</td>
+	<td width="74%" align="center">設定する値</td>
+  </tr>
+  <tr>
+	<td width="9%" rowspan="4" align="center">C/C++</td>
+	<td width="15%" align="center">一般</td>
+	<td width="36%">プリプロセッサの定義</td>
+	<td width="74%">WIN32,_DEBUG,_WINDOWS,_MBCS,_USRDLL,(フィルタ名)_EXPORTS<b>,_X86_=1,WINVER=0x0400,DEBUG,DBG=1<br>
+	  </b>(太字部分を追加。WINVERは適当に変更よろしく。)</td>
+  </tr>
+  <tr>
+	<td width="15%" align="center">コード生成</td>
+	<td width="36%">呼び出し規則</td>
+	<td width="74%">__stdcall</td>
+  </tr>
+  <tr>
+	<td width="15%" align="center">プリコンパイル済みヘッダー</td>
+	<td width="36%">　</td>
+	<td width="74%">プリコンパイル済みヘッダーを使用しない<br>
+	  （この辺は好みで）</td>
+  </tr>
+  <tr>
+	<td width="15%" align="center">プリプロセッサ</td>
+	<td width="36%">インクルードファイルのパス</td>
+	<td width="74%"><code>(SDKフォルダ)\include,(SDKフォルダ)\samples\Multimedia\DirectShow\BaseClasses<br>
+	  </code>（２箇所指定します。Streams.hをincludeフォルダにコピーしてあればincludeだけでも可）</td>
+  </tr>
+  <tr>
+	<td width="9%" rowspan="5" align="center">リンク</td>
+	<td width="15%" rowspan="3" align="center">一般</td>
+	<td width="36%">出力ファイル名</td>
+	<td width="74%">debug/フィルタ名.ax<br>
+	  （デフォルトでは拡張子ｄｌｌなのでaxに変更する。しなくてもいいけど）</td>
+  </tr>
+  <tr>
+	<td width="36%">オブジェクト／ライブラリモジュール</td>
+	<td width="74%"><code>kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib	
+	  <b> strmbasd.lib quartz.lib msvcrt.lib winmm.lib vfw32.lib kernel32.lib advapi32.lib version.lib largeint.lib user32.lib gdi32.lib comctl32.lib ole32.lib olepro32.lib oleaut32.lib uuid.lib</b>&nbsp;</code><br>
+	  （太字部分を追加。本当はこんなにいっぱいいらんのだがｗ）</td>
+  </tr>
+  <tr>
+	<td width="36%">デフォルトライブラリをすべて無視</td>
+	<td width="74%">チェックする</td>
+  </tr>
+  <tr>
+	<td width="15%" align="center">アウトプット</td>
+	<td width="36%">エントリポイントシンボル</td>
+	<td width="74%">DllEntryPoint@12</td>
+  </tr>
+  <tr>
+	<td width="15%" align="center">インプット</td>
+	<td width="36%">追加ライブラリのパス</td>
+	<td width="74%"><code>(SDKフォルダ)\lib,(SDKフォルダ)\samples\Multimedia\DirectShow\BaseClasses\debug</code></td>
+  </tr>
+</table>
+<p></p>
+<p>◎フィルタクラスの新規作成</p>
+<p><img border="0" src="dshow51.jpg" width="470" height="367"></p>
+<p>メニュー「挿入」－「クラスの新規作成」でプロジェクトにクラスを追加します。</p>
+<p>このとき、基本クラスに<font color="#FF00FF"><b>CTransformFilter</b></font>を指定します。<br>
+これは変換フィルタの基本クラスになります。<br>
+このCTransformFilterクラスを継承して変換フィルタを作ることになります。<br>
+（別のクラスもあるが、こっちの方が色々できる。、、、と思う＾＾；）</p>
+<p>なお、クラスを作るときに「クラスの定義がみつからんよ～。やるなら勝手にやってや～」って感じの<br>
+警告がでるかもしれませんが、とりあえずそのまま続行してください。</p>
+<p>この時点でプロジェクトには2つのファイルが登録され、以下のようになっていると思います。</p>
+
+<p>MoFilter.h</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>// MoFilter.h: CMoFilter クラスのインターフェイス<br>			
+	  //<br>
+	  //////////////////////////////////////////////////////////////////////<br>
+	  <br>
+	  #if !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)<br> 		
+	  #define AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_<br>			
+	  <br>
+	  #if _MSC_VER > 1000<br>			
+	  #pragma once<br>			
+	  #endif // _MSC_VER > 1000<br> 		
+	  <br>
+	  class CMoFilter : public CTransformFilter&nbsp;<br>			
+	  {<br>
+	  public:<br>
+	  　　CMoFilter();<br>
+	  　　virtual ~CMoFilter();<br> 		
+	  <br>
+	  };<br>
+	  <br>
+	  #endif // !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)			
+	  </code></td>	
+  </tr>
+</table>
+
+<p>MoFilter.cpp</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>// MoFilter.cpp: CMoFilter クラスのインプリメンテーション<br>			
+	  //<br>
+	  //////////////////////////////////////////////////////////////////////<br>
+	  <br>
+	  #include "MoFilter.h"<br> 		
+	  <br>
+	  //////////////////////////////////////////////////////////////////////<br>
+	  // 構築/消滅<br>			
+	  //////////////////////////////////////////////////////////////////////<br>
+	  <br>
+	  CMoFilter::CMoFilter()<br>
+	  {<br>
+	  <br>
+	  }<br>
+	  <br>
+	  CMoFilter::~CMoFilter()<br>
+	  {<br>
+	  <br>
+	  } 
+	  </code></td>	
+  </tr>
+</table>
+
+<p>この状態に肉付けします。</p>
+<hr>
+
+<p>MoFilter.h</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code>// MoFilter.h: CMoFilter クラスのインターフェイス<br>			
+	  //<br>
+	  //////////////////////////////////////////////////////////////////////<br>
+	  <br>
+	  #if !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)<br> 		
+	  #define AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_<br>		
+	  <br>
+	  #if _MSC_VER > 1000<br>		
+	  #pragma once<br>			
+	  #endif // _MSC_VER > 1000<br> 		
+	  <br>
+	  <br>
+	  <font color="#0000FF">
+	  // CmoFilterのクラスID<br>	
+	  // {A6A4E64B-6AAA-4838-AF6C-048CCE72924C}<br> 	
+	  static const GUID CLSID_MoFilter =&nbsp;<br>	
+	  { 0xa6a4e64b, 0x6aaa, 0x4838, { 0xaf, 0x6c, 0x4, 0x8c, 0xce, 0x72, 0x92, 0x4c } };<br>	
+	  </font>	
+	  <br>
+	  <br>
+	  class CMoFilter : public CTransformFilter&nbsp;<br>		
+	  {<br>
+	  public:<br>
+	  <font color="#800080">
+	  &nbsp;&nbsp;&nbsp; DECLARE_IUNKNOWN;			// CUnknownのインターフェース定義<br>		
+	  &nbsp;&nbsp;&nbsp; CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr);<br>		
+	  &nbsp;&nbsp;&nbsp; virtual ~CMoFilter();<br>			
+	  &nbsp;&nbsp;&nbsp; static CUnknown *CreateInstance(LPUNKNOWN punk, HRESULT *phr);<br> 		
+	  &nbsp;&nbsp;&nbsp; HRESULT CheckInputType(const CMediaType *mtIn);<br>		
+	  &nbsp;&nbsp;&nbsp; HRESULT CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut);<br>		
+	  &nbsp;&nbsp;&nbsp; HRESULT Transform(IMediaSample *pIn, IMediaSample *pOut);<br>			
+	  &nbsp;&nbsp;&nbsp; HRESULT DecideBufferSize( IMemAllocator *pAlloc,ALLOCATOR_PROPERTIES *pProperties);<br>		
+	  &nbsp;&nbsp;&nbsp; HRESULT GetMediaType(int iPosition, CMediaType *pMediaType);<br>		
+	  &nbsp;&nbsp;&nbsp; HRESULT CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin );</font><br>		
+	  };<br>
+	  <br>
+	  #endif // !defined(AFX_MOFILTER_H__49A24DB0_FC0D_4D9F_BC69_08D8D24D93B0__INCLUDED_)<br>		
+	  </code></td>	
+  </tr>
+</table>
+
+<p>MoFilter.cpp</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>
+// MoFilter.cpp: CMoFilter クラスのインプリメンテーション
+//
+//////////////////////////////////////////////////////////////////////
+
+#include	<stdio.h>
+#include	<streams.h>
+#include	<initguid.h>
+
+#include	&quot;MoFilter.h&quot;
+
+
+<font color="#FF00FF">//////////////////////////////////////////////////////////////////////
+// 入力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE mPinMediaType_In=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// 出力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE mPinMediaType_Out=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// ピン情報
+const AMOVIESETUP_PIN mPinInfo[]=
+{
+	{
+		L&quot;Input&quot;,			// ピンの名前（未使用）
+		FALSE,			// このピンをレンダリングするか?
+		FALSE,			// これは出力ピンか?
+		FALSE,			// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,			// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,				// メディアタイプの数
+		&amp;mPinMediaType_In		// メディアタイプ
+	},
+	{
+		L&quot;Output&quot;,			// ピンの名前（未使用）
+		FALSE,			// このピンをレンダリングするか?
+		TRUE,				// これは出力ピンか?
+		FALSE,			// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,			// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,				// メディアタイプの数
+		&amp;mPinMediaType_Out	// メディアタイプ
+	}
+};
+
+// フィルタ設定
+const AMOVIESETUP_FILTER mFilterInfo=
+{
+	&amp;CLSID_MoFilter,			// クラスID
+	L&quot;MoFilter&quot;,			// フィルタ名
+	MERIT_DO_NOT_USE,			// メリット
+	2,					// ピンの数
+	mPinInfo				// ピン情報
+};
+
+// ファクトリテンプレートの宣言
+CFactoryTemplate g_Templates[]=
+	{
+		{
+			L&quot;MoFilter&quot;,
+			&amp;CLSID_MoFilter,
+			CMoFilter::CreateInstance,
+			NULL,
+			&amp;mFilterInfo
+		}
+	};
+int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);</font><font color="#0000FF">
+
+
+
+
+</font><font color="#008080">//////////////////////////////////////////////////////////////////////
+// レジストリへの登録
+STDAPI DllRegisterServer()
+{
+	return AMovieDllRegisterServer2( TRUE );
+}
+
+// レジストリからの解除
+STDAPI DllUnregisterServer()
+{
+	return AMovieDllRegisterServer2( FALSE );
+}</font><font color="#0000FF">
+
+
+
+//////////////////////////////////////////////////////////////////////
+// コンストラクタ
+CMoFilter::CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr) :
+	CTransformFilter(tszName, pUnk, CLSID_MoFilter)
+{
+}
+
+</font>// デストラクタ
+CMoFilter::~CMoFilter()
+{
+}<font color="#0000FF">
+
+
+//////////////////////////////////////////////////////////////////////
+// インスタンス作成
+CUnknown *CMoFilter::CreateInstance(LPUNKNOWN punk, HRESULT *phr)
+{
+	CMoFilter *pNewObject=new CMoFilter( NAME(&quot;MoFilter&quot;),punk,phr );
+	if( pNewObject==NULL ) 
+	{
+		*phr=E_OUTOFMEMORY;
+	}
+	return pNewObject;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 入力ピンの接続チェック
+HRESULT CMoFilter::CheckInputType(const CMediaType *mtIn)
+{
+	return E_FAIL;
+}
+
+// 出力ピンの接続チェック
+HRESULT CMoFilter::CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut)
+{
+	return E_FAIL;
+}
+
+//////////////////////////////////////////////////////////////////////
+// バッファの準備
+HRESULT CMoFilter::DecideBufferSize(IMemAllocator *pAlloc, ALLOCATOR_PROPERTIES *pProperties)
+{
+	return E_FAIL;
+}
+
+// 出力ピンが接続できるメディアタイプを返す
+HRESULT CMoFilter::GetMediaType(int iPosition, CMediaType *pMediaType)
+{
+	return E_FAIL;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 接続完了
+HRESULT CMoFilter::CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin )
+{
+	return E_FAIL;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 転送
+HRESULT CMoFilter::Transform(IMediaSample *pIn, IMediaSample *pOut)
+{
+	return E_FAIL;
+}
+</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<p>色付きの部分が追加した所です。（ってほとんどなんですがｗ）<br>
+それとdefファイルをプロジェクトに追加します。</p>
+
+<p>MoFilter.def</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>;	File	 : MoFilter.def
+
+LIBRARY 		MoFilter.AX
+DESCRIPTION 	'MoFilter'
+EXPORTS
+	DllGetClassObject	PRIVATE 	
+	DllCanUnloadNow 	PRIVATE 	
+	DllRegisterServer	PRIVATE 	
+	DllUnregisterServer PRIVATE  </pre>
+	</td>	
+  </tr>
+</table>
+
+<p>順に説明していきます。</p>
+<hr>
+<p>◎クラスIDの定義</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><code>#if _MSC_VER &gt; 1000
+#pragma once
+#endif // _MSC_VER &gt; 1000
+
+
+<font color="#0000FF">// CmoFilterのクラスID
+// {A6A4E64B-6AAA-4838-AF6C-048CCE72924C}
+static const GUID CLSID_MoFilter =&nbsp;
+{ 0xa6a4e64b, 0x6aaa, 0x4838, { 0xaf, 0x6c, 0x4, 0x8c, 0xce, 0x72, 0x92, 0x4c } };</font></code>
+</pre>
+</td>	
+  </tr>
+</table>
+
+<p>まずやることはこれから作るフィルタのクラスIDを定義することです。<br>
+MoFilter.hの<font color="#0000FF">青色</font>部分がそれにあたります。<br>
+<br>
+クラスIDとはクラスをレジストリに登録するときのIDのようなものです。<br>
+コードからは人間がわかりやすい名前で指定しますが、<br>
+実際にはこのIDでやり取りされている訳です。<br>
+<br>
+このIDはフィルタ毎に違うものにしなければなりません。<br>
+もし同じだと登録時に上書きされてしまいます。<br>
+つまりこのIDは世界中で唯一のものにしなければならないということです。<br>
+そんなIDですから自由に決められるものではありません。<br>
+<br>
+どうやって決めるかというと、<br>
+Microsoftの有料ライセンス会員になって申請し重複しないIDを交付してもらう・・・<br>
+訳ではないです（＾＾；<br>
+VisualStadioがインストールしてあれば、このIDを生成するツールが付いています。<br>
+どうやって作り出しているのかは知りませんが、<br>
+（NICのMACアドレスやマシンの構成などから作り出してるらしいですが）<br>
+実行するたびに世界中で重複しない（であろう）IDを作り出してくれます。</p>
+<p>VisualStudioをインストールしたところのCommon\Toolsの下にあります。<br>
+デフォルトだと<br>
+<i>C:\Program Files\Microsoft Visual Studio\Common\Tools<br> 
+</i>あたりにあります。<br>
+ツールは２つあって、<b><font color="#FF00FF">GUIDGEN.EXE</font></b>と<font color="#FF00FF"><b>UUIDGEN.EXE</b></font>です。<br>
+GUIDGENはGUIツールで、UUIDGENはコンソール用です。<br>
+どっちでもいいのですが、私はGUIDGENの方ばかり使ってます。</p>
+<p><img border="0" src="dshow52.jpg" width="437" height="315"></p>
+<p>起動するとこんな画面がでます。<br>
+GUID Formatで３番あたりを選択してCopyボタンを押すと<br> 	 
+定義分がクロップボードに入りますのでコードに貼り付けます。<br>
+貼り付けただけだとクラスIDの名前（人間様用の名前）の部分が&lt;&lt;name&gt;&gt;などとなっているので<br>
+適当に変更します。</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><code>// {52DD34B9-8BA3-4d99-BCF4-0D3D35A5C2CC}
+static const GUID <font color="#FF0000">&lt;&lt;name&gt;&gt;</font> = 
+{ 0x52dd34b9, 0x8ba3, 0x4d99, { 0xbc, 0xf4, 0xd, 0x3d, 0x35, 0xa5, 0xc2, 0xcc } };</code></pre>
+</td>	
+  </tr>
+</table>
+
+<p>　</p>
+<hr>
+<p>◎ファクトリテンプレートの定義</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// 入力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE <font color="#FF0000">mPinMediaType_In</font>=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// 出力ピンのメディアタイプ
+const AMOVIESETUP_MEDIATYPE <font color="#0000FF">mPinMediaType_Out</font>=
+	{
+		&amp;MEDIATYPE_NULL,&amp;MEDIASUBTYPE_NULL
+	};
+
+// ピン情報
+const AMOVIESETUP_PIN <font color="#FF00FF">mPinInfo</font>[]=
+{
+	{
+		L&quot;Input&quot;,			// ピンの名前（未使用）
+		FALSE,			// このピンをレンダリングするか?
+		FALSE,			// これは出力ピンか?
+		FALSE,			// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,			// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,				// メディアタイプの数
+		&amp;<font color="#FF0000">mPinMediaType_In</font>		// メディアタイプ
+	},
+	{
+		L&quot;Output&quot;,			// ピンの名前（未使用）
+		FALSE,			// このピンをレンダリングするか?
+		TRUE,				// これは出力ピンか?
+		FALSE,			// このフィルタはゼロインスタンスを生成できるか?
+		FALSE,			// このフィルタは複数のインスタンスを生成するか?
+		&amp;CLSID_NULL,		// 未使用
+		NULL,				// 未使用
+		1,				// メディアタイプの数
+		&amp;<font color="#0000FF">mPinMediaType_Out</font>	// メディアタイプ
+	}
+};
+
+// フィルタ設定
+const AMOVIESETUP_FILTER <font color="#008000">mFilterInfo</font>=
+{
+	&amp;<font color="#800080">CLSID_MoFilter</font>,			// クラスID
+	L&quot;MoFilter&quot;,			// フィルタ名
+	MERIT_DO_NOT_USE,			// メリット
+	2,					// ピンの数
+	<font color="#FF00FF">mPinInfo</font>				// ピン情報
+};
+
+// ファクトリテンプレートの宣言
+CFactoryTemplate <b>g_Templates</b>[]=
+	{
+		{
+			L&quot;MoFilter&quot;,
+			&amp;<font color="#800080">CLSID_MoFilter</font>,
+			CMoFilter::CreateInstance,
+			NULL,
+			&amp;<font color="#008000">mFilterInfo</font>
+		}
+	};
+int <b>g_cTemplates</b> = sizeof(g_Templates) / sizeof(g_Templates[0]);<font color="#0000FF">
+</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<p>上記がファクトリテンプレートの定義になります。<br>
+フィルタの入力／出力ピンの数や種類、プロパティページに関する情報などを<br>
+ファクトリテンプレート用のパブリック変数に入れておきます。<br>
+これらを定義しておかないとコンパイルエラーになります。</p>
+<p>最終的に必要になるのは<b>g_Templates</b>と<b>g_cTemplates</b>です。<br>
+その中で指定する情報を上で定義しています。（上で説明したクラスIDも指定します）<br>
+<br>
+今回作成するフィルタは、入力１、出力１のフィルタで名前は「MoFilter」になってます。<br>
+<b>g_Templates</b>の要素が１つですが、プロパティページなどがある場合はここにその内容を記述します。<br>
+<br>
+構造体の各メンバの意味については、コード中のコメントとDirectXSDKのヘルプを参照してください。<br>
+</p>
+<hr>
+<p>◎レジストリへの登録／解除
+</p>
+
+<p>フィルタはレジストリに登録しなければなりません。<br>
+下記がその部分になります。
+</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><font color="#008080">//////////////////////////////////////////////////////////////////////
+// レジストリへの登録
+STDAPI DllRegisterServer()
+{
+	return AMovieDllRegisterServer2( TRUE );
+}
+
+// レジストリからの解除
+STDAPI DllUnregisterServer()
+{
+	return AMovieDllRegisterServer2( FALSE );
+}</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre>;	File	 : MoFilter.def
+
+LIBRARY 		MoFilter.AX
+DESCRIPTION 	'MoFilter'
+EXPORTS
+	<font color="#FF0000">DllGetClassObject</font>	 PRIVATE	 
+	<font color="#FF0000">DllCanUnloadNow</font>	 PRIVATE	 
+	<font color="#0000FF">DllRegisterServer</font>	 PRIVATE	 
+	<font color="#0000FF">DllUnregisterServer</font> PRIVATE  </pre>
+	</td>	
+  </tr>
+</table>
+
+<p>レジストリに登録するには<b><font color="#0000FF">DllRegisterServer</font></b>と<b><font color="#0000FF">DllUnregisterServer</font></b>という関数をエクスポートします。<br>
+この辺はDLLを作るときの決まりみたいなもんです。<br>
+コピペしちゃってください。<br>
+<br>
+エクスポートする関数はこの２つのほかに<b><font color="#FF0000">DllGetClassObject</font></b>と<b><font color="#FF0000">DllCanUnloadNow</font></b>もありますが、<br>
+これは基底クラスを定義したライブラリ<b>Strmbase.lib</b>又は<b>Strmbasd.lib</b>にありますので<br>
+名前だけdefファイルで挙げておけばOKです。<br>
+</p>
+<hr>
+<p>◎インスタンス化の処理</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><font color="#0000FF">//////////////////////////////////////////////////////////////////////
+// コンストラクタ
+CMoFilter::CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr) :
+	CTransformFilter(tszName, pUnk, CLSID_MoFilter)
+{
+}
+
+</font>// デストラクタ
+CMoFilter::~CMoFilter()
+{
+}<font color="#0000FF">
+
+
+//////////////////////////////////////////////////////////////////////
+// インスタンス作成
+CUnknown *CMoFilter::CreateInstance(LPUNKNOWN punk, HRESULT *phr)
+{
+	CMoFilter *pNewObject=new CMoFilter( NAME(&quot;MoFilter&quot;),punk,phr );
+	if( pNewObject==NULL ) 
+	{
+		*phr=E_OUTOFMEMORY;
+	}
+	return pNewObject;
+}
+</font> </pre>
+	</td>	
+  </tr>
+</table>
+
+<p>デフォルトのコンストラクタCMoFilter::CMoFilterは削除して、上のコードに変えています。<br>
+親クラスの初期化を加えているだけですが。<br>
+<br>
+CMoFilter::CreateInstanceは実際にフィルタが作成されたときにＤｉｒｅｃｔＳｈｏｗ側から呼び出されます。<br>
+ここは「決まり」です（＾＾；こういう風に書きましょう。<br>
+NAME()マクロで指定している部分<font color="#0000FF">NAME(&quot;MoFilter&quot;)</font>はフィルタの名前になります。</p>
+
+<hr>
+<p>◎メソッドの実装</p>
+<p>作成するフィルタクラスCMoFilterの親クラスCTransformFilterの仮想関数を実装します。</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><code>class CMoFilter : public CTransformFilter&nbsp;
+{
+public:
+<font color="#800080">&nbsp;</font>&nbsp;&nbsp; DECLARE_IUNKNOWN; // CUnknownのインターフェース定義
+&nbsp;&nbsp;&nbsp; CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr);
+&nbsp;&nbsp;&nbsp; virtual ~CMoFilter();
+&nbsp;&nbsp;&nbsp; static CUnknown *CreateInstance(LPUNKNOWN punk, HRESULT *phr);
+<font color="#0000FF">&nbsp;&nbsp;&nbsp; HRESULT CheckInputType(const CMediaType *mtIn);
+&nbsp;&nbsp;&nbsp; HRESULT CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut);
+&nbsp;&nbsp;&nbsp; HRESULT DecideBufferSize( IMemAllocator *pAlloc,ALLOCATOR_PROPERTIES *pProperties);
+&nbsp;&nbsp;&nbsp; HRESULT GetMediaType(int iPosition, CMediaType *pMediaType);
+</font><font color="#FF0000">&nbsp;&nbsp;&nbsp; HRESULT CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin );
+&nbsp;&nbsp;&nbsp; HRESULT Transform(IMediaSample *pIn, IMediaSample *pOut);
+</font>};</code><font color="#0000FF">
+</font> </pre>
+	</td>	
+  </tr>
+</table>
+
+<p>上の青色部分の関数を定義する必要があります。<br>
+CompleteConnectとTransformは純粋仮想関数ではないので定義する必要はないのですが、<br>
+説明のために挙げてあります。<br>
+</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF">
+<pre><font color="#0000FF">//////////////////////////////////////////////////////////////////////
+// 入力ピンの接続チェック
+HRESULT CMoFilter::CheckInputType(const CMediaType *mtIn)
+{
+	return E_FAIL;
+}
+
+// 出力ピンの接続チェック
+HRESULT CMoFilter::CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut)
+{
+	return E_FAIL;
+}
+
+//////////////////////////////////////////////////////////////////////
+// バッファの準備
+HRESULT CMoFilter::DecideBufferSize(IMemAllocator *pAlloc, ALLOCATOR_PROPERTIES *pProperties)
+{
+	return E_FAIL;
+}
+
+// 出力ピンが接続できるメディアタイプを返す
+HRESULT CMoFilter::GetMediaType(int iPosition, CMediaType *pMediaType)
+{
+	return E_FAIL;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 接続完了
+HRESULT CMoFilter::CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin )
+{
+	return E_FAIL;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// 転送
+HRESULT CMoFilter::Transform(IMediaSample *pIn, IMediaSample *pOut)
+{
+	return E_FAIL;
+}
+</font></pre>
+	</td>	
+  </tr>
+</table>
+
+<p>これらは状況によってDirectShow側から呼び出されます。<br>
+現在はいずれのメソッドも何もしないでエラーを返しています。<br>
+実際にはこれらのメソッド内で色々します。<br>
+<br>
+<font color="#0000FF">
+
+
+CheckInputType<br>
+CheckTransform<br>
+</font>アプリケーションがフィルタをグラフに接続しようとしたときなど、<br>
+接続ができるかどうかを問い合わせるときに呼び出される関数です。<br>
+接続先のピンの属性を調べて接続を許可するならS_OKを返すようにします。</p>
+<p><font color="#0000FF">DecideBufferSize<br>
+</font>下流のフィルタからの要求を満たすためにバッファのサイズを返します。<br>
+DecideAllocatorメソッドから呼び出されます。</p>
+<p><font color="#0000FF">GetMediaType
+</font><br>
+アプリケーションがピンの属性を要求したときに有効なタイプを答えます。<br>
+<br>
+<font color="#0000FF">CompleteConnect<br>
+</font>フィルタが接続されたときに呼び出されます。<br>
+<br>
+<font color="#0000FF">Transform<br>
+</font>上流から渡されたストリームデータ（pIn)を加工して<br>
+下流へ渡すバッファ(pOut)にセットします。<br>
+メインというか一番大事なところかもしれません。<br>
+</p>
+<hr>
+<p>以上で骨組みだけのフィルタができます。<br>
+コンパイルすれば<b>MoFilter.ax</b>ができると思います。</p>
+<p>あとはこれをレジストリに登録すればDirectShowから使えるようになります。<br>
+（実際にはなにをやってもエラーになるんで使えないけどｗ）<br>
+<br>
+レジストリに登録するにはregsvr32.exeを使いましょう。<br>
+<br>
+　　regsvr32 MoFilter.ax<br> 
+<br>
+これでGraphEditなどで一覧に現れるようになります。<br>
+グラフに登録することまでできると思いますが、どんなフィルタもつながりません（＾＾；<br>
+<br>
+具体的な実装は長くなったので<a href="dshow6.html">その２</a>で紹介します。<br>
+</p>
+
+<hr>
+<p><a href="..index.html">上に戻る</a></p>
+
+</body>
+
+</html>

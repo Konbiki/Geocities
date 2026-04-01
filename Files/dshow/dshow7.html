@@ -1,0 +1,582 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p><b>４</b><b>．オリジナルフィルタの作成（その３）</b></p>
+<p>前回のMoFilterに独自の<b>インターフェース</b>をつけ、<br>
+VBなどから呼び出せる<b>タイプライブラリ</b>を作ってみようと思います。</p>
+<p>今回つけるのは以下のメソッドです。</p>
+<table border="1" width="97%">
+  <tr>
+    <td width="24%">名称、引数</td>
+    <td width="76%">内容</td>
+  </tr>
+  <tr>
+    <td width="24%">obj.<font color="#FF00FF">SetEnable</font> NewValue</td>      
+    <td width="76%">フィルタ効果のOn/Ofｆを設定する。NewValueが0ならOff、0以外ならOn。</td>
+  </tr>
+  <tr>
+    <td width="24%">obj.<font color="#FF00FF">GetEnable</font> NowValue</td>      
+    <td width="76%">フィルタ効果のOn/Off状態を取得する。Long型変数にOffなら0が、Onなら0以外が返る。</td>
+  </tr>
+  <tr>
+    <td width="24%">obj.<font color="#FF00FF">GetImage</font> Buffer</td>      
+    <td width="76%">フィルタ内のイメージバッファを取得する。BufferにはLong型の配列の先頭要素を指定する。</td>
+  </tr>
+</table>
+<p>とりあえずこれだけです。肝心のフィルタ効果の内容に関するものがないけど気にしないで（＾＾；；；；</p>
+<p>基本的にCOMのインターフェースの作り方になりますので<br>
+その辺の資料も含めて見てくださったほうが理解しやすいでしょう。<br>
+私のボロもよく見えるでしょうから（笑</p>
+<hr>
+
+<p>まず公開するインターフェースを定義したヘッダファイルを作ります。<br>
+IMoFilter.hというヘッダファイルをプロジェクトに追加し、<br>
+以下のような内容を記述します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>#ifndef __IMOFILTER__
+#define __IMOFILTER__
+
+
+<font color="#0000FF">// IMoFilterインターフェースのGUID
+// {B6067441-6208-41cd-AF38-164E33E6C84E}
+DEFINE_GUID( IID_IMoFilter, 
+			0xb6067441, 0x6208, 0x41cd, 0xaf, 0x38, 0x16, 0x4e, 0x33, 0xe6, 0xc8, 0x4e);
+</font>
+<font color="#FF0000">// IMoFilterインターフェース
+DECLARE_INTERFACE_( IMoFilter,IUnknown ) 
+{
+	STDMETHOD( SetEnable ) ( THIS_ long NewValue ) PURE;
+	STDMETHOD( GetEnable ) ( THIS_ long *NewValue ) PURE;
+	STDMETHOD( GetImage ) ( THIS_ long *NewValue ) PURE;
+};</font>
+
+#endif 
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>まずIMoFilterのGUIDを定義します。（<font color="#0000FF">青色部分</font>）<br>
+MoFilterフィルタのGUIDとは違うIDを定義します。<br>
+（MoFilterフィルタとIMoFilterインターフェースは物が違いますから）</p>
+<p>IMoFilterインターフェースの部分（<font color="#FF0000">赤色部分</font>）で定義しています。<br>
+<font color="#FF0000">DECLARE_INTERFACE_</font>でインターフェースを<font color="#FF0000"><br>
+STDMETHOD</font>でメソッドとその引数を定義します。<br>
+<br>
+細かい話になりますが、<br>
+インターフェースとは構造体（＝クラス。C++ではクラスも構造体もほとんど同じ）で実現されます。<br>
+DECLARE_INTERFACE_やSTDMETHODの定義をみれば<br>
+なにをやっているのかはわかるでしょう。<br>
+（カーソルを合わせて右クリック、ポップアップメニューから定義位置を表示でみれますから）<br>
+せっかくMicrosoftがマクロを用意してくれているので<br>
+逆らわないでマクロを使って定義しましょう。</p>
+<p>SetEnableはlong型の引数を一つ受け取るように定義し、<br>
+GetEnableは値を返すのでポインタで定義します。<br>
+GetImageもバッファの先頭アドレスが欲しいのでポインタで定義します。<br>
+バッファの領域は呼び出し側で確保しておかなければなりません。<br>
+本当はこんな危ない受け渡しはしない方がいいです（＾＾；<br>
+せめてバッファのサイズも受け取った方がいいですね。</p>
+<p>でCMoFilterにこれを継承させます。</p>
+
+<table border="1" width="100%" height="357">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" height="351">
+<pre>
+// CmoFilterのクラスID
+// {A6A4E64B-6AAA-4838-AF6C-048CCE72924C}
+static const GUID CLSID_MoFilter = 
+{ 0xa6a4e64b, 0x6aaa, 0x4838, { 0xaf, 0x6c, 0x4, 0x8c, 0xce, 0x72, 0x92, 0x4c } };
+
+
+class CMoFilter :	public CTransformFilter <font color="#FF0000">,
+			public IMoFilter</font>
+{
+public:
+	DECLARE_IUNKNOWN;			// CUnknownのインターフェース定義
+	CMoFilter(TCHAR *tszName, LPUNKNOWN pUnk, HRESULT *phr);
+	virtual ~CMoFilter();
+	static CUnknown *CreateInstance(LPUNKNOWN punk, HRESULT *phr);
+	HRESULT CheckInputType(const CMediaType *mtIn);
+	HRESULT CheckTransform(const CMediaType *mtIn, const CMediaType *mtOut);
+	HRESULT Transform(IMediaSample *pIn, IMediaSample *pOut);
+	HRESULT DecideBufferSize( IMemAllocator *pAlloc,ALLOCATOR_PROPERTIES *pProperties);
+	HRESULT GetMediaType(int iPosition, CMediaType *pMediaType);
+	HRESULT CompleteConnect( PIN_DIRECTION direction,IPin *pReceivePin );
+
+<font color="#FF0000">	</font><font color="#0000FF">STDMETHOD(NonDelegatingQueryInterface)(REFIID riid, void **ppv);</font><font color="#FF0000">
+	STDMETHODIMP SetEnable( long NewValue );
+	STDMETHODIMP GetEnable( long *NewValue );
+	STDMETHODIMP GetImage( long *NewValue );
+</font>
+private:
+	HRESULT MediaCheck(const CMediaType *MediaType);
+	HRESULT Copy(IMediaSample *Src, IMediaSample *Dst) const;
+	HRESULT UpdateBitmap(IMediaSample *MediaSample);
+
+	long *mImageBuffer;
+	<font color="#FF00FF">long mEnable;
+	long mBuffSize;</font></pre>
+    </td>  
+  </tr>
+</table>
+
+<p>色付き部分が追加されるところです。</p>
+<p>IMoFIlterインターフェースで定義した３つメソッドを実装し<br>
+青色部分の<font color="#0000FF">NonDelegatingQueryInterface</font>をオーバーライドします。<br>
+NonDelegatingQueryInterfaceについては後で説明します。</p>
+<p>mEnableはフィルタ効果のOn/Offを制御するためのフラグで、<br>
+mBuffSizeはイメージを格納するために確保した領域のサイズを保存しておくためのものです。</p>
+<p>それぞれのメソッドの実装は以下のようになります。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>//////////////////////////////////////////////////////////////////////
+// SetEnableメソッド
+HRESULT CMoFilter::SetEnable(long NewValue)
+{
+	mEnable=NewValue;
+	return S_OK;
+}
+
+// GetEnableメソッド
+HRESULT CMoFilter::GetEnable(long *NewValue)
+{
+	*NewValue=mEnable;
+	return S_OK;
+}
+
+
+// GetImageメソッド
+HRESULT CMoFilter::GetImage(long *NewValue)
+{
+	if( mImageBuffer!=NULL )
+	{
+		CopyMemory( (void *)NewValue,(void *)mImageBuffer,mBuffSize );
+	}
+
+	return S_OK;
+}
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>SetEnableはmEnableの値を設定し、<br>
+GetEnableはmEnableの値を返しているだけです。<br>
+GetImageは受け取ったポインタにバッファの内容を転送しています。<br>
+見ての通りいい加減なチェックしかしていないです(^^;</p>
+<p>mEnableはコンストラクタで初期化して、<br>
+mBuffSizeはCompleteConnect()で領域を確保したさいに保存しておきます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>
+	// イメージ保存用バッファの確保
+<font color="#0000FF">	mBuffSize=ImgX*ImgY*sizeof(long);
+</font>	mImageBuffer=new long[ImgX*ImgY];
+	memset( mImageBuffer,0,<font color="#0000FF">mBuffSize</font> );
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>またmEnableによって効果をOn/OffするのはUpdateBitmap()に<br>
+if文を一つ追加して制御しています。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>
+// イメージの変更
+	BYTE *b0=(BYTE *)mImageBuffer;
+	BYTE *b1=BmpBuff;
+	long d0,d1,dd;
+	long z;
+	<font color="#0000FF">if( mEnable )
+	{</font>
+		for( z=0;z&lt;BmpBuffSize;z++ )
+		{
+			d0=*b0;
+			d1=*b1;
+			dd=(d0*95+d1*5)/100;
+			*b1=(BYTE)dd;
+
+			b0++;
+			b1++;
+		}
+	<font color="#0000FF">}</font>
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>これでメソッドの実装は終わりです。<br>
+<br>
+最後に残しておいたNonDelegatingQueryInterfaceですが、<br>
+これはフィルタを使うアプリが独自インターフェースを要求したときに<br>
+そのポインタを返す関数になります。<br>
+要は「ｘｘというインターフェース（のポインタ）ある？」って問い合わせがあったら<br>
+「はい、これね～」か「そんなインタフェースしらんよ～」って返すのが仕事です。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>
+// 独自インターフェースの提供
+STDMETHODIMP CMoFilter::NonDelegatingQueryInterface(REFIID riid, void **ppv)
+{
+	// フィルタのインターフェース
+	if( riid==IID_IMoFilter)
+		return GetInterface( (IMoFilter *)this,ppv );
+
+	return CTransformFilter::NonDelegatingQueryInterface( riid,ppv );
+}
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>引数のriidがIMoFilter.hで定義したIMoFilter用のGUID（IID_IMoFilter）だったら<br>
+そのインターフェース（のポインタ）を返します。</p>
+<p>これでフィルタに独自インターフェースがつきました。<br>
+デフォルトでmEnableが0になっているので<br>
+こんどはGraphEditで追加してもそのままでは効果を発揮しなくなります。</p>
+<p>　</p>
+<p>最後にVBから今回追加したメソッドを使えるようにする<font color="#FF00FF">タイプライブラリ</font>を作成するために<br>
+インターフェース定義ファイル(IMoFilter.idl)を作ります。</p>
+<p>IMoFilter.hと同じようにプロジェクトに IMoFilter.idl      
+というファイルを追加し、<br>
+以下のように記述します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>
+[
+  <font color="#0000FF">uuid(F85795BB-AD3A-408e-9927-653119A35F9A),</font>
+  version(1.0),
+  helpstring(&quot;<font color="#800080">MoFilter control type library</font>&quot;)
+]
+
+library <font color="#808000">MoFilterLib</font>
+{
+	importlib(&quot;stdole2.tlb&quot;);
+
+	[
+	  odl,
+	  uuid(<font color="#FF0000">b6067441-6208-41cd-af38-164e33e6c84e</font>),
+		   helpstring(&quot;IMoFilter interface&quot;)
+	]
+	<font color="#008080">interface IMoFilter : IUnknown</font> {
+		HRESULT _stdcall SetEnable( [in] long NewValue);
+		HRESULT _stdcall GetEnable( [out] long* NewValue);
+		HRESULT _stdcall GetImage( [out] long* NewValue);
+	};
+};
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>IDLファイルの書き方について全部説明すると<b>本が３冊ぐらい書けちゃいます</b>ので<br>
+簡便させてもらいますが今回はこのような定義になります。<br>
+（うそです。私が全部説明できるほど知らないだけです。<br>
+MSDNにちゃんと説明があります、<font size=+2>英語</font>だけど・・・）</p>
+<p>青色部分のUUIDはタイプライブラリのGUIDになります。<br>
+またUUIDGEN.EXEで作ってください。<br>
+<br>
+赤色部分のuuidはIMoFilterのGUIDになります。<br>
+IMoFilter.hで定義した内容を書きます。<br>
+（書式がちがうけど縮めただけです。同じ値でないといけません）<br>
+<br>
+library <font color="#808000">MoFilterLib</font>の行でこのタイプライブラリの名前を定義します。<br>    
+<br>
+<font color="#008080">interface IMoFilter : IUnknown</font>のところでインターフェースを定義します。<br>
+その中で各メソッドを列挙します。<br>
+引数の[in]は値を渡すもので、[out]は値が戻されるものです。<br>
+ちなみに[out,retval]とすると戻り値になります。<br>
+<br>
+<br>
+これでコンパイルすれば、新しいMoFilter.axとIMoFilter.tblが出来上がります。<br>
+全ソースは<a href="MoFilter2.lzh">こちら</a>からダウンロードできます。<br>
+MoFilter.axはregsvr32.exeで登録し（前回登録してあればOK）、<br>
+IMoFilter.tblはVBの参照設定で指定します。</p>
+<hr>
+<p>続いてVBでの使い方を説明します。</p>
+<p>VBだけで使いたい方は<a href="MoFilterVB.lzh">こちら</a>からフィルタのプログラムと<br>
+タイプライブラリだけダウンロードして登録してください。<br>
+（サンプルのVBソースも入ってます）</p>
+<p>コマンドプロンプトを開いてダウンロードしたファイルを適当なディレクトリに解凍して<br>
+以下のコマンドを入力します。<br>
+<br>
+　　regsvr32 MoFilter.ax<br>    
+<br>
+タイプライブラリの方は、VBを起動して参照設定の画面で<br>
+「参照」ボタンを押して、IMoFilter.tblを選択してください。<br>
+（次回からは一覧にでるようになります）</p>
+<p>早速ですが、新しいMoFilterを使うプログラムは以下のようになります。<br>
+フォームが２つあります。</p>
+<p>form1<br>
+<img border="0" src="dshow71.jpg" width="343" height="141"></p>
+<p>ボタンの名前：btn_Snap<br>
+チェックボックスの名前：chk_Enable<br>
+<br>
+form2<br>
+<img border="0" src="dshow72.gif" width="260" height="183"></p>
+<p>PictureBoxが一つあり、名前はPicture1</p>
+<p><br>
+form1のコードは以下のようになります。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>
+Option Explicit
+
+'カメラのフィルタ名
+Private Const CAMERA_FILTER_NAME$ = &quot;STV0680 Camera&quot;     'Che-es! SPYZ
+Private Const CAMERA_OUTPUTPIN_NAME$ = &quot;~Capture&quot;
+
+'グラフ
+Private mGrp As QuartzTypeLib.FilgraphManager
+
+'MoFilterインターフェース
+Private mMoFlt As MoFilterLib.IMoFilter
+
+
+'フォームロード時
+Private Sub Form_Load()
+
+    'グラフマネージャの作成
+    Set mGrp = New QuartzTypeLib.FilgraphManager
+    
+    'グラフにキャプチャ（カメラ）フィルタを追加する
+    Dim cameraflt As QuartzTypeLib.IFilterInfo
+    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)
+    
+    'MoFilterの追加
+    Set mMoFlt = AddFilter(mGrp, &quot;MoFilter&quot;).Filter
+    
+    'カメラの出力ピンを取得
+    Dim camerapin As QuartzTypeLib.IPinInfo
+    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin
+    
+    'カメラの出力ピンからフィルタを接続し、グラフを構築する
+    camerapin.Render
+    
+    '再生
+    mGrp.Run
+    
+End Sub
+
+'レジストリに登録されているフィルタをグラフに追加する
+Public Function AddFilter(ByRef Grp As QuartzTypeLib.FilgraphManager, ByVal FilterName$) As IFilterInfo
+    Dim regflt As QuartzTypeLib.IRegFilterInfo
+    For Each regflt In Grp.RegFilterCollection
+        If regflt.Name = FilterName$ Then
+            regflt.Filter AddFilter
+            Exit Function
+        End If
+    Next
+End Function
+
+
+'Enableボタン
+Private Sub chk_Enable_Click()
+    Dim flg As Long
+    mMoFlt.GetEnable flg
+    flg = Not flg
+    mMoFlt.SetEnable flg
+End Sub
+
+
+'Snapボタン
+Private Sub btn_Snap_Click()
+    
+    'イメージのサイズをIBasicVideoから取得
+    Dim bv As QuartzTypeLib.IBasicVideo
+    Set bv = mGrp
+    Dim wx As Long, wy As Long
+    wx = bv.VideoWidth
+    wy = bv.VideoHeight
+    
+    '領域を確保
+    Dim buf() As Long, sz As Long
+    sz = wx * wy
+    ReDim buf(sz * 4 - 1)
+    
+    'イメージの取得
+    mMoFlt.GetImage buf(0)
+    
+    '別フォームに描画
+    Dim frm As New Form2
+    frm.Picture1.Move 0, 0, wx * Screen.TwipsPerPixelX, wy * Screen.TwipsPerPixelY
+    frm.Move frm.Left, frm.Top, _
+        (frm.Width - frm.ScaleWidth) + frm.Picture1.Width, _
+        (frm.Height - frm.ScaleHeight) + frm.Picture1.Height
+    WriteBitmap frm.Picture1, buf(), wx, wy
+    frm.Show
+    
+End Sub
+
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>form2のコードはありません。（イメージを表示するだけなので）</p>
+<p>詳細を説明します。</p>
+<hr>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>Option Explicit
+
+'カメラのフィルタ名
+Private Const CAMERA_FILTER_NAME$ = &quot;STV0680 Camera&quot;     'Che-es! SPYZ
+Private Const CAMERA_OUTPUTPIN_NAME$ = &quot;~Capture&quot;
+
+'グラフ
+Private mGrp As QuartzTypeLib.FilgraphManager
+
+'MoFilterインターフェース
+<font color="#0000FF">Private mMoFlt As MoFilterLib.IMoFilter</font></pre>
+<pre>'フォームロード時
+Private Sub Form_Load()
+
+    'グラフマネージャの作成
+    Set mGrp = New QuartzTypeLib.FilgraphManager
+    
+    'グラフにキャプチャ（カメラ）フィルタを追加する
+    Dim cameraflt As QuartzTypeLib.IFilterInfo
+    Set cameraflt = AddFilter(mGrp, CAMERA_FILTER_NAME$)
+    
+    <font color="#0000FF">'MoFilterの追加
+    Set mMoFlt = AddFilter(mGrp, &quot;MoFilter&quot;).Filter</font>
+    
+    'カメラの出力ピンを取得
+    Dim camerapin As QuartzTypeLib.IPinInfo
+    cameraflt.FindPin CAMERA_OUTPUTPIN_NAME$, camerapin
+    
+    'カメラの出力ピンからフィルタを接続し、グラフを構築する
+    camerapin.Render
+    
+    '再生
+    mGrp.Run
+    
+End Sub
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p><a href="dshow2.html">VBでライブ映像を表示</a>の場合とほとんど同じです。<br>
+（ただし、動画はフォーム外で表示させています）</p>
+<p>Form_Load()でグラフを作る際に、<br>
+AddFilter関数でMoFilterフィルタをグラフに追加していますが、<br>
+これの戻り値（IFilterInfo）のFilterメソッドの戻り値（ちょっとややこしい）を<br>
+モジュールセクションで定義してあるImoFilterの変数mMoFltに保存しておきます。</p>
+<p>　</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>'Enableボタン
+Private Sub chk_Enable_Click()
+    Dim flg As Long
+    mMoFlt.<font color="#FF00FF">GetEnable</font> flg
+    flg = Not flg
+    mMoFlt.<font color="#FF00FF">SetEnable</font> flg
+End Sub
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>チェックボックスをクリックした際の処理になります。<br>
+本来ならchk_Enableコントロールの値を使うべきなんですが、<br>
+むりやり全メソッドを使うためにこんなコードにしています（＾＾；</p>
+<p>GetEnableでLong型の変数flgに現在の状態を取得し、<br>
+SetEnableでそれを反転した値を設定します。</p>
+<p>　</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+<pre>'Snapボタン
+Private Sub btn_Snap_Click()
+    
+    'イメージのサイズをIBasicVideoから取得
+    Dim bv As QuartzTypeLib.IBasicVideo
+    Set bv = mGrp
+    Dim wx As Long, wy As Long
+    wx = bv.VideoWidth
+    wy = bv.VideoHeight
+    
+    '領域を確保
+    Dim buf() As Long, sz As Long
+    sz = wx * wy
+    ReDim buf(sz * 4 - 1)
+    
+    'イメージの取得
+    <font color="#0000FF">mMoFlt.GetImage buf(0)</font>
+    
+    '別フォームに描画
+    Dim frm As New Form2
+    frm.Picture1.Move 0, 0, wx * Screen.TwipsPerPixelX, wy * Screen.TwipsPerPixelY
+    frm.Move frm.Left, frm.Top, _
+        (frm.Width - frm.ScaleWidth) + frm.Picture1.Width, _
+        (frm.Height - frm.ScaleHeight) + frm.Picture1.Height
+    <font color="#FF0000">WriteBitmap</font> frm.Picture1, buf(), wx, wy
+    frm.Show
+    
+End Sub
+</pre>
+    </td>  
+  </tr>
+</table>
+
+<p>Snapボタンを押した時の処理になります。</p>
+<p>まずIBasicVideoオブジェクトからイメージのサイズwx,wyを取得します。<br>
+これからイメージを取得する領域のサイズを計算します。<br>
+サイズはピクセル数（縦サイズ×横サイズ）になります。<br>
+このサイズ分をLong型変数bufで確保し<font color="#0000FF">GetImage</font>メソッドを呼び出します。<br>
+このとき配列の先頭要素を渡します。<br>
+これで配列bufに1ピクセル毎の色情報が縦×横サイズ分だけ入ります。</p>
+<p>最後は別フォームを作ってそこにあるピクチャーボックスに画像を表示します。<br>
+<br>
+<font color="#0000FF">
+GetImage</font>で取得できるイメージはDIB形式で<br>
+Long型の要素１つに1ピクセルの色情報が入ります。<br>
+VBのRGB関数などで取得できるカラー値とはRとBが逆転してますので注意してください。<br>
+また一番したのラインから格納されてます。<br>
+<font color="#FF0000">
+WriteBitmap</font>という関数の中でSetDIBitsToDeviceというAPIを使って描画しています。<br>
+(この辺のコードはサンプルソースを参照ください）
+</p>
+
+<p>　
+</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>

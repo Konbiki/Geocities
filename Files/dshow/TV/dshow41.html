@@ -1,0 +1,223 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=shift_jis">
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<title>DirectShow関係</title>
+</head>
+
+<body bgcolor="#CCFFCC">
+
+<p><b>DirectShow関係</b></p>
+<hr>
+<p><b>８． TV表示<br>  
+８．2 プログラムからTVを表示（WindowsXP専用)</b></p>  
+<hr>
+
+<p>基本的に7.1のグラフを作ればTVが表示できるわけですが、<br>
+クロスバーを設定したりチャンネルを変更したりってのは結構面倒だったりします。</p>
+
+<p>ですがWindowsXP環境であればVBから容易にTVを表示する手段が用意されています。<br>
+こではそれを使ってVBでTV表示をする方法を紹介します。</p>
+
+<hr>
+<p>◎概要</p>
+
+<p>WindowsXPでTV表示を行うには「Microsoft TV  
+テクノロジ」というものを使用します。<br>
+これを使うと他のページで散々書いている「グラフ」とか「フィルタ」とか知らなくても<br>
+VBでTV表示ができます。（＾＾；</p>
+
+<p>Microsoft TV  
+テクノロジでTV表示を行うには下記のような流れになります。</p>
+
+<p>　チューニングスペースの作成　→　チューニング要求の作成　→　チャンネル選択　→　デバイスの構成　→　再生</p>
+
+<p>フィルタとかピンとかが出てこないですが、<br>
+さらに訳分からん言葉が並びます（笑</p>
+
+<p>では、例によってサンプルコードで説明します。</p>
+
+<hr>
+<p>◎参照設定</p>
+
+<p>VBでTVを表示するには、一つのコンポーネントと、一つの参照設定を行います。<br>
+<br>
+まずコンポーネントは、<br>
+メニュー「プロジェクト」－「コンポーネント」でダイアログを開いて<br>
+<br>
+　<b><i>MS Video Control 1.0 Type Library</i></b></p> 
+
+<p>を追加します。</p>
+
+<p><img border="0" src="dshow50.jpg" width="515" height="367"></p>
+
+<p>次に、メニュー「プロジェクト」－「参照設定」のダイアログを開いて</p>
+
+<p>　Microsoft Tuner 1.0 Type Library</p> 
+
+<p>を追加します。</p>
+
+<p><img border="0" src="dshow51.jpg" width="459" height="310"></p>
+
+<p>　</p>
+
+<p>　</p>
+
+<hr>
+<p>◎フォームの作成</p>
+
+<p>コンポーネントを追加すると、コンポーネント一覧に<br>
+<font size="4"><b>いかにもプログラマがやっつけ仕事で作ったようなアイコン</b></font>が現れます（笑</p>
+
+<p><img border="0" src="dshow43.gif" width="97" height="84">もう、他のアイコンとの違和感ありまくりｗ</p>
+
+<p>このアイコンのコントロールをフォームに貼り付けます。<br>
+（貼り付けると黒い四角になります。この部分にTVが表示されます。）<br>
+<br>
+他に、チャンネル番号を入力するテキストボックスと<br>
+チャンネルを変更するコマンドボタンを適当に配置します。</p>
+
+<p><img border="0" src="dshow44.gif" width="349" height="287"></p>
+
+<p>各コントロールの名前/プロパティははデフォルトのままで話を進めますが、<br>
+気に入らなければ適当に変更してください。<br>
+</p>
+
+<hr>
+<p>◎実際のコード</p>
+
+<p>サンプルの動作としては、コマンドボタン押下でテキストボックスに入力されたチャンネルを表示します。<br>
+下記がTV表示のサンプルコードになります。</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      'チャンネル変更ボタン押下時<br>
+      Private Sub Command1_Click()<br> 
+      <br>
+      　　'チューニングスペースの作成<br>
+      　　Dim ts As New TunerLib.AnalogTVTuningSpace<br> 
+      　　ts.CountryCode = 81                 '日本<br> 
+      　　ts.MaxChannel = 62                  '最大チャンネル番号<br> 
+      　　ts.MinChannel = 1                   '最低チャンネル番号<br> 
+      　　ts.InputType = TunerInputAntenna    '入力タイプ：アンテナ<br> 
+      <br>
+      　　'チューニング要求の作成<br>
+      　　Dim tr As TunerLib.IChannelTuneRequest<br> 
+      　　Set tr = ts.CreateTuneRequest<br> 
+      <br>
+      　　'チャンネルの選択<br>
+      　　tr.Channel = Val(Text1.Text)<br> 
+      <br>
+      　　'入力デバイスの構成（チューニング）<br>
+      　　MSVidCtl1.View tr<br> 
+      <br>
+      　　'再生開始<br>
+      　　MSVidCtl1.Run<br>
+      <br>
+      End Sub<br> 
+      </code></td>	
+  </tr>
+</table>
+<p>たったこれだけです（笑</p>
+<p>順に説明します。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      'チャンネル変更ボタン押下時<br>
+      Private Sub Command1_Click()<br> 
+      <br>
+      　　    'チューニングスペースの作成<br>
+      　　    Dim ts As New TunerLib.AnalogTVTuningSpace<br> 
+      　　    ts.CountryCode = 81                 '日本<br> 
+      　　    ts.MaxChannel = 62                  '最大チャンネル番号<br> 
+      　　    ts.MinChannel = 1                   '最低チャンネル番号<br> 
+      　　    ts.InputType = TunerInputAntenna    '入力タイプ：アンテナ<br> 
+      </code></td>	
+  </tr>
+</table>
+<p>初めに「<font color="#FF00FF"><b>チューニングスペース</b></font>」を作成します。<br>
+今回はアンテナ入力のアナログTVを表示させるので<br>
+「<code>TunerLib.AnalogTVTuningSpace</code>」というオブジェクトを作ります。<br>
+（チューニング対象によっていくつかのオブジェクトがあります。<br>
+　ATSC用、DVB用、コンポジット入力用、ラジオ用とかね。<br>
+　ちなみにATSCってのはアメリカのデジタル放送、<br>
+　DVBってのはヨーロッパのデジタル放送。だったと思う^^;;）<br>
+<br>
+これの各プロパティを設定することで、<br>
+チューニングの範囲と入力タイプなどを決定します。</p>
+<p>サンプルでは日本の周波数帯で、チャンネル範囲を１～62、入力をアンテナとしていいます。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    'チューニング要求の作成<br>
+      　　    Dim tr As TunerLib.IChannelTuneRequest<br> 
+      　　    Set tr = ts.CreateTuneRequest<br> 
+      </code></td>	
+  </tr>
+</table>
+<p>次にチューニングスペースオブジェクトから「チューニング要求」を作成します。<br>
+「<code><font color="#FF00FF"><b>IChannelTuneRequest</b></font></code>オブジェクト」というのはアナログ用のチューニング要求で<br>
+ATSCやDVB用は別のがあります。<br>
+（アメリカの放送には興味がないんで、興味のある方はDirectX9のヘルプを見てください）</p>
+<p>チューニング要求はチューニングスペース（<code>AnalogTVTuningSpace</code>）の<br>
+「<code>CreateTuneRequest</code>」メソッドを使います。</p>
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    'チャンネルの選択<br>
+      　　    tr.Channel = Val(Text1.Text)<br> 
+      </code></td>	
+  </tr>
+</table>
+
+<p>チューニング要求オブジェクトの「」プロパティにチャンネル番号を入れます。<br>
+これで「チューニング要求」が完成です。</p>
+
+<table border="1" width="100%">
+  <tr>
+	<td width="100%" bgcolor="#FFFFFF"><code><br>
+      　　    '入力デバイスの構成（チューニング）<br>
+      　　    MSVidCtl1.View tr<br> 
+      <br>
+      　　    '再生開始<br>
+      　　    MSVidCtl1.Run<br>
+      <br>
+      End Sub<br> 
+      </code></td>	
+  </tr>
+</table>
+
+<p>「チューニング要求」ができたら、<br>
+それを引数にビデオコントロールオブジェクト（<code>MSVidCtl1</code>）の「View」メソッドを呼び出します。<br>
+これで「チューニング要求」がビデオコントロールに渡されます。</p>
+
+<p>この時点でビデオコントロールの中でTV画像の入力部分のグラフが作られます。<br>
+<br>
+後はビデオコントロールの「Run」メソッドでグラフが再生＝TV表示が始まります。</p>
+
+<p>実はRunの前に「Build」という操作が必要なんですが、<br>
+Buildされていない状態でRunが呼び出されると<br>
+自動的にやってくれるそうなんで省略しています。<br>
+<br>
+Viewではグラフの入力部分が作られて、Buildでその他(レンダラ等)が作られるみたいですね。<br>
+</p>
+
+<hr>
+
+<p>以上でVBからTV表示を行うことができます。</p>
+
+<p>個人的な意見なんですがキャプチャカードについてくるTV表示アプリとかは<br>
+なんか余計なインターフェースが多くて嫌なんですよね。<br>
+ただ表示するだけならVBでも簡単に作れるので<br>
+だれかクールなやつを作ってください。<br>
+ちなみに普段はGraphEditで見てます（＾＾；；</p>
+
+<hr>
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+</html>
