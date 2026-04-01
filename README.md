@@ -4,4 +4,3 @@
   http://www.geocities.co.jp/SiliconValley/7406
   http://konbiki.starfree.jp
 
-http://dshowmenu.html
