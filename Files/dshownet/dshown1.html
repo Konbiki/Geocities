@@ -1,0 +1,311 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<p><b>DirectShow関係２（DirectX9+VB.net)</b></p>
+
+<hr>
+
+<p><b>１．動画の再生</b></p>
+
+<p>VB.netからDirectX9で動画を再生する方法を簡単に紹介します。</p>
+
+<p>
+
+<br>
+
+（１）プロジェクトの作成</p>
+
+
+
+<p>まずはVB.netのプロジェクトを作ります。<br>
+
+メニューから「ファイル」－「新規作成」－「プロジェクト」を選び、<br>
+
+VisualBasicプロジェクトを選択します。<br>
+
+<img border="0" src="dshown1.jpg" width="619" height="358"></p>
+
+
+
+<p>上の図では名前は「dshownet1」としていますが、適当な名前をつけてもらってかまわないです。</p>
+
+
+
+<p>右側のテンプレートでは「Windowsアプリケーション」を選択します。（別になんでもいいんだけど）<br>
+
+DirectX9SDKをインストールすると「DirectX9 Visual Basic Wizard」というのが増えてますが、<br>  
+
+今回は使いません。そのうち時間があったらそっちの方もやってみようかと思います。</p>
+
+
+
+<p>　</p>
+
+
+
+<p>（２）参照の追加</p>
+
+
+
+<p>プロジェクトができましたら、DirectX用の参照を追加します。<br>
+
+メニューの「プロジェクト」－「参照の追加」を選択します。<br>
+
+<img border="0" src="dshown2.jpg" width="659" height="408"></p>
+
+
+
+<p>リストから「Microsoft.DirectX..AudioVideoPlayback」を選び、選択ボタンで追加します。</p>
+
+
+
+<p>これで動画の再生に必要な部品が使えるようになります。</p>
+
+
+
+<p>　</p>
+
+
+
+<p>（３）コーディング<br>
+
+フォームをダブルクリックしてコードを入力します。</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+    	<pre>
+
+Public Class Form1
+
+    Inherits System.Windows.Forms.Form
+
+
+
+#Region &quot; Windows フォーム デザイナで生成されたコード &quot;
+
+　略
+
+#End Region
+
+
+
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+
+
+    End Sub
+
+End Class
+
+    	</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+
+
+<p>デフォルトで上の様なコードになっていると思いますので、<br>
+
+以下の文を追加します。（青色部分）</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+    	<pre>
+
+Public Class Form1
+
+    Inherits System.Windows.Forms.Form
+
+
+
+#Region &quot; Windows フォーム デザイナで生成されたコード &quot;
+
+　略
+
+#End Region
+
+
+
+    <font color="#0000FF">Private Const FILENAME As String = &quot;<a href="file:///C:/DXSDK/Samples/Media/highway.avi">C:\DXSDK\Samples\Media\highway.avi</a>&quot;
+
+
+
+    Private mMedia As Microsoft.DirectX.AudioVideoPlayback.Video</font>
+
+
+
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+       <font color="#0000FF"> mMedia = New Microsoft.DirectX.AudioVideoPlayback.Video(FILENAME, False)
+
+        mMedia.Owner = Me
+
+        mMedia.Play()</font>
+
+    End Sub
+
+End Class
+
+    	</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+
+
+<p>これだけです（＾＾；<br>
+
+一応順に説明します。</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+    	<pre>    <font color="#0000FF">Private Const FILENAME As String = &quot;<a href="file:///C:/DXSDK/Samples/Media/highway.avi">C:\DXSDK\Samples\Media\highway.avi</a>&quot;</font>    	</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+
+
+<p>例によってSDKに付属するサンプル動画のファイル名を定義します。</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+    	<pre>    <font color="#0000FF">Private mMedia As Microsoft.DirectX.AudioVideoPlayback.Video</font>    	</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+
+
+<p>動画再生を行う<font color="#0000FF">Microsoft.DirectX.AudioVideoPlayback.Video</font>クラスの変数を定義します。</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+    	<pre>       <font color="#0000FF"> mMedia = New Microsoft.DirectX.AudioVideoPlayback.Video(FILENAME, False)
+
+        mMedia.Owner = Me
+
+        mMedia.Play()</font></pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+
+
+<p>Form1_Load内でこのVideoクラスのインスタンスを作成し、再生開始までしています。<br>
+
+Videoクラスのコンストラクタは２種類ありますが、<br>
+
+違いは自動的に再生を開始するかどうかのスイッチの有無で<br>
+
+どちらもファイル名を必要になります。<br>
+
+<br>
+
+Ownerプロパティは動画を再生するコンテナを指定します。<br>
+
+ここではMe,つまりForm1フォームをコンテナにしています。<br>
+
+Ownerプロパティを指定しない場合は、別ウィンドウで再生されます。</p>
+
+<p>最後にPlayメソッドで動画の再生を開始しています。</p>
+
+<p>　</p>
+
+<p><img border="0" src="dshown3.jpg" width="352" height="240"><br>
+
+（動画が再生されるのが見えるでしょう。<br>
+
+　愚か者には見えないようなプロテクトがかかってますが笑）</p>
+
+<p>　</p>
+
+<hr>
+
+<p>このように再生はとっても簡単です。<br>
+
+自動的にウィンドウサイズを動画サイズに変更してくれますし、<br>
+
+ウィンドウサイズを変更すれば動画サイズが変わります。<br>
+
+至れり尽くせりですね。（楽過ぎ）</p>
+
+<p>　</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

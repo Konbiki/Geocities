@@ -1,0 +1,107 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<h1><b>OpenCV関係(VB2005)</b></h1>
+
+<hr>
+
+<h2><b>2．</b>サンプル２（矩形検知）</h2>
+
+<p>VB(VB2005)によるOpenCV使用のサンプルプログラムの２番目です。<br>
+全ソースは下記からダウンロードできます。<br>
+<a href="OpenCVDemo2.lzh">OpenCVDemo2.lzh</a></p>
+
+<p><img border="0" src="opencv2.jpg"></p>
+
+<p>このサンプルプログラムは<br>
+カメラから静止画を取り込み、矩形（長方形）を探し出して表示（緑色）します。<br>
+矩形が傾いている場合、その傾きを補正して表示します。<br>
+OpenCV付属サンプルの「squares.exe」を拡張したようなサンプルです。<br>
+<br>
+またこのサンプルは画面表示や入力にOpenCVのUIを使用せず<br>
+VBの機能を積極的に使用して<br>
+静止画取り込みと画像処理部分のみにOpenCVを使用しています。</p>
+
+<hr>
+
+<p>画像処理としては下記の流れとなります。<br>
+<br>
+<br>
+　①静止画取得<br>
+<br>
+　②ノイズを除去<br>
+　　<b>cvPyrDown</b>にて1/2に縮小し、<br>
+　　<b>cvPyrUp</b>にて2倍に拡大することでノイズを除去する。<br>
+<br>
+　③RGBの各チャネル毎に下記④～⑧を実行し、<br>
+　　最も大きい矩形を選ぶ。<br>
+<br>
+　④二値化<br>
+　　対象とするチャネル(R,G,Bのいずれか)を<b>cvSetImageCOI</b>で選択し、<br>
+　　<b>cvCopy</b>で対象とするチャネルのみ取り出す。<br>
+　　<b>cvThreshold</b>で「二値化しきい値」以下を0、以上を255にする。<br>
+<br>
+　⑤輪郭線集出<br>
+　　<b>cvFindContours</b>で輪郭線リストを取得する。<br>
+<br>
+　⑥取得した全ての輪郭線毎に下記⑦～⑧を実行し、<br>
+　　最も大きい矩形を選ぶ。<br>
+<br>
+　⑦輪郭線を直線近似<br>
+　　<b>cvApproxPoly</b>で対象輪郭線を直線に近似する。<br>
+　　近似した図形が四角形(辺の数＝４)でなければ対象外とする。<br>
+<br>
+　⑧妥当な矩形か？<br>
+　　<b>cvContourArea</b>で面積を求め、「最小矩形サイズ」より小さい場合は除外する。<br>
+　　<b>cvCheckContourConvexity</b>で、交差しているか凹型の四角形は除外する。<br>
+　　画像の四隅付近に２頂点以上ある場合は除外する。　(画面全体が選択されることを抑止するため)<br>
+　　４点の角度が90度±「最大角度誤差」の範囲でない場合は除外する。（台形や平行四辺形を除外するため）<br>
+<br>
+　⑨有効な矩形が見つかった場合、<br>
+　　基準点(回転角度が最も小さくなる左下の角)を選択する。<br>
+<br>
+　⑩出力画像が「角度補正後」の場合、<br>
+　　基準点を元に水平となるように回転させた画像を表示する。<br>
+　　（画像の回転には<b>cvWarpAffine</b>によるアフィン変換を用いる）<br>
+<br>
+<br>
+以上が大まかな流れです。<br>
+すいませんが、詳細についてはコードを参照して下さい^^;<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+
+
+<p>　</p>
+
+
+
+</body>
+
+
+
+</html>
+

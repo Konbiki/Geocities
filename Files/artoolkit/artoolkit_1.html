@@ -1,0 +1,131 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>ARToolKit関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>ARToolKit関係</b></h1>
+
+<hr>
+
+<p><b>◎概要</b><br>
+ARToolKitというのは拡張現実感(Augmented Reality)と呼ばれる効果を生み出すためのライブラリで<br>   
+テレビなどでたまに見かける「紙に印刷したマーカーの上にキャラクタが表示される」ような映像が<br>   
+とても簡単に実現できるライブラリです。<br>   
+より詳しい情報は下記をどうぞ。<br>   
+<a href="http://www.hitl.washington.edu/artoolkit/">http://www.hitl.washington.edu/artoolkit/</a><br>   
+<br>   
+ARToolKitLibはこのARToolKitをVB(VB2008)から使うためのラッパーDLLになります。<br>   
+<br>   
+<img border="0" src="artool1.jpg" width="336" height="277">  
+</p>  
+  
+  
+  
+<p>※添付のサンプルの実行画面です。マーカーの位置にティーポットが表示されます。  
+</p>  
+  
+  
+  
+<p>  
+<br>  
+注意事項になるのですが、<br>  
+ARToolKitは内部的にOpenGLを使っており、かつ、GLUTライブラリが使われています。<br> 
+当方で公開しているOpenGL用ライブラリのページでも説明していますが、<br> 
+GLUTは.Net Frameworkと相性がよいとは言えません。<br>    
+具体的にいいますと、プログラムの基本構造が<br>    
+GLUTのメインループ機能(glutMainLoop)にのっかったメインループ機能(argMainLoop)を用いることが<br>   
+前提となっているので、このARToolKitが用意しているメインループ機能を呼び出した時点で<br>   
+すべての制御をARToolKit(GLUT)に委ねることになり一般的なVBでの終了方法がとれなくなります。<br>   
+ぶっちゃけていうと、終了は「End」ステートメントを使うしかないのです。<br>   
+一応argMainLoopを使わない方法のサンプルも添付していますが、<br>   
+この場合、画像入力はOpenCV、マーカー認識はARToolKit、画面表示はOpenGLと<br>   
+それぞれ別のライブラリを使う必要があります。<br>   
+（それで問題はないと思いますが、あんまり多くのライブラリに依存するのは好きじゃないってだけです。<br>   
+　まぁARToolKitもそれと同じような考えでOpenGL(GLUT)に限ってるのかもしれませんけどね。）<br>
+</p>
+
+
+
+<hr>
+
+<p><b>◎インストール/使用準備</b></p>
+<table border="1" width="67%">
+  <tr>
+    <td width="26%" align="center">ファイル名</td>
+    <td width="74%" align="center">備考</td>
+  </tr>
+  <tr>
+    <td width="26%"><a href="ARToolKitLib_20081225.zip">ARToolKitLib_20081225.zip</a></td>
+    <td width="74%">初公開バージョン</td>
+  </tr>
+</table>
+<p><br>
+上記アーカイブをダウンロードして頂き、適当なフォルダに展開して下さい。<br>
+使用時にはlibフォルダ下にある「ARToolKitLib.dll」を参照設定して下さい。<br>
+<br>
+またこのライブラリを使用するにはARToolKit本体のインストールが必要です。<br>
+<a href="http://www.hitl.washington.edu/artoolkit/download/">http://www.hitl.washington.edu/artoolkit/download/</a><br>
+上記あたりからWindows用をダウンロードしてこれまた適当なフォルダに展開して下さい。<br>
+ARToolKit本体のbinフォルダ、及び、DSVL\binフォルダにパスを張る必要があるかもしれません。<br>
+<i>　マイコンピュータのプロパティ<br>
+　　詳細設定タブ<br>
+　　　環境変数ボタン<br>
+　　　　ユーザ環境変数の「Path」を選択し、編集ボタン<br>
+　　　　　(ARToolKitのインストールフォルダ)\bin、及び、<br>
+　　　　　(ARToolKitのインストールフォルダ)\DSVL\binを追加。<br>
+　　　　　（「;」(セミコロン)で結合。変更後、再起動）</i><br>
+<br>
+ARToolKit本体のbinフォルダにあるサンプルが動作する環境になっている必要があります。<br>
+<br>
+</p>
+
+
+
+<hr>
+
+<p><b>◎ライセンス</b><br>
+<br>
+このライブラリのソースにはARToolKitのソースの一部を流用しています。<br>
+よってARToolKitのライセンス(GPL)に準拠します。<br>
+詳細はARToolKitのサイトでご確認下さい。<br>
+</p>
+
+
+
+<hr>
+
+<p><b>◎ソースについて</b><br>
+<br>
+アーカイブにはライブラリの全ソース(C++/CLI)が含まれています。<br>
+ラッパクラスの定義にはARToolKitのヘッダファイルから自動生成したコードを使用しています。<br>
+SourceMakeはこのソースファイルを生成するプログラムです。<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+</body>
+
+
+
+</html>
+

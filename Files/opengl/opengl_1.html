@@ -1,0 +1,84 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenGL関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>OpenGL関係(VB2005)</b></h1>
+
+<hr>
+
+<h2>１．OpenGL用クラスライブラリ（DLL)
+</h2>
+
+<p><b>◎インストール</b><br>
+VB(VB2005)からOpenGLを使う時に必要となる定義等を集めたクラスライブラリを公開します。<br>
+下記からDLLをダウンロードし、適当な場所に格納して下さい。<br>
+<br>
+<a href="OpenGLLib.lzh">OpenGLLib.lzh</a><br>
+<br>
+全ソースは下記からどうぞ。（サンプルプログラムも入ってます）<br>
+<br>
+<a href="OpenGLLibSrc.lzh">OpenGLLibSrc.lzh</a><br>
+<br>
+<br>
+使用する際は、目的のプロジェクトでメニュー「プロジェクト」－「参照の追加」－「参照タブ」で上記のDLLを指定して下さい。<br>
+これでOpenGLの関数をVBから呼び出すことができるようになります。<br>
+<br>
+<br>
+<b>◎ヘルパクラス</b><br>
+OpenGLLib.dllにはOpenGL関係の定数及び関数の定義以外に、<br>
+便利というか良く使う機能を提供する私が作ったヘルパクラス(GLHelper)も入ってます。<br>
+下記のようなメソッドがあります。<br>
+<br>
+初期化関係<br>
+　StartOpenGL				画像が表示されるウィンドウを指定し、OpenGLを初期化します。<br> 
+　EndOpenGL					OpenGL関係の終了処理を行います。<br> 
+<br>
+テクスチャ関係<br>
+　LoadTexture				Bitmapの内容をテクスチャとして登録します。<br> 
+　LoadTextureFromResource	組み込みリソースから画像を読み込み、テクスチャとして登録します。<br> 
+<br>
+フレームレート関係<br>
+　UpdateFrameRate			フレームレートを更新します。（毎フレーム呼び出すこと）<br> 
+　FrameRate					現在のフレームレートを取得します。<br> 
+<br>
+エラーチェック関係<br>
+　ErrorCheck				OpenGLで発生したエラーの有無を調べ、エラーがあればデバッグコンソールに出力します。<br> 
+</p>
+
+
+
+<p><br>
+引数や制限、具体的な使い方については、<br>
+ライブラリのソースを見るかサンプルプログラムを参考にして下さい。(^^;<br>
+<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+</body>
+
+
+
+</html>
+

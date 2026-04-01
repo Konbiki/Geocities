@@ -1,0 +1,593 @@
+<html>
+
+
+
+<head>
+
+<meta http-equiv="Content-Language" content="ja">
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>VBでマウスジェスチャ</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<p><b>VBでマウスの動きを捉える方法(VB2005 + DirectInput編)</b></p> 
+ 
+<hr> 
+ 
+<p>DirectInputを使う方法のVB2005(VB.NET)版です。<br> 
+基本的な流れは一緒ですが、.Net Frameworkに合ったものになってます。</p>  
+  
+  
+  
+<hr>  
+  
+<p>DirectInputを使うための準備<br>  
+<br>  
+VB2005(VB.NET)からDirectInputを使う場合、<br>  
+下記の.NETコンポーネットを参照追加して下さい。<br>  
+<br>  
+　Microsoft.DirectX<br>
+　Microsoft.DirectX.DirectInput<br>
+<br>
+メニュー「プロジェクト」－「参照の追加」で開くダイアログに<br>
+上記のコンポーネントが見付からない場合は<br>
+DirectX SDKをインストールしてみて下さい。<br>  
+</p>  
+  
+  
+  
+<hr>  
+  
+<p>いつも通りサンプルプログラムを元に説明していきます。<br>  
+  
+ここで説明するプログラムのソースは、下記からダウンロードできます。<br>  
+<a href="DotNetDISample.zip"> 
+DotNetDISample.zip</a><br> 
+<br> 
+このプログラムを実行すると、下記のウィンドウが開きます。<br> 
+<img border="0" src="mouse32.jpg" width="392" height="277"><br>
+<br>
+「Mouse」ボタンを押下すると、マウスのキャプチャを開始します。<br>
+再度押下すると解除されます。<br>
+<br>
+「Keyboard」も同様にキーボードキャプチャを開始/停止させます。<br>
+<br>
+キャプチャした情報は下部のリストボックスに表示されます。<br>
+「Exit」ボタン押下でプログラムを終了します。<br>
+<br>
+他のアプリがアクティブになっていても<br>
+マウス入力/キー入力を捕らえることができます。</p>
+
+<hr>
+
+<p>プログラムは全てForm1フォームクラス内に記述してあります。<br>
+（説明の為、エラー処理等は簡略化してあります。）<br>
+順に説明します。<br>
+</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font COLOR="#0000ff">Option</font> <font COLOR="#0000ff">Explicit</font> <font COLOR="#0000ff">On<br>
+Option</font> <font COLOR="#0000ff">Strict</font> <font COLOR="#0000ff">On<br>
+</font><font COLOR="#008000"><br>
+'参照設定にて下記のコンポーネントを追加すること。<br>
+</font><font COLOR="#008000">'「Microsoft.DirectX」<br>
+</font><font COLOR="#008000">'「Microsoft.DirectX.DirectInput」<br>
+</font><font COLOR="#0000ff"><br>
+Imports</font> Microsoft.DirectX<br>
+<font COLOR="#0000ff">Imports</font> Microsoft.DirectX.DirectInput<br>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>「Microsoft.DirectX」と「Microsoft.DirectX.DirectInput」の<br>
+名前空間をインポートします。<br>
+要するに、いちいち Microsoft.DirectX.DirectInput.なんちゃら～ と書かなくとも<br> 
+いいように宣言しているだけです。<br> 
+（ただしサンプルでは混乱しないようにフル名称で書くようにしてます）</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+    <td width="100%" bgcolor="#FFFFFF"> 
+ 
+<font COLOR="#0000ff">Public</font> <font COLOR="#0000ff">Class</font> Form1<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'モジュール変数<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mDIDevKey <font COLOR="#0000ff">As</font> 
+Microsoft.DirectX.DirectInput.Device <font COLOR="#008000">'キーボード用DirectInputデバイス<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mDIDevKeyEvent <font COLOR="#0000ff">As</font> 
+System.Threading.AutoResetEvent <font COLOR="#008000">'キーボード状態変化通知用イベント<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mDIDevMouse <font COLOR="#0000ff">As</font> 
+Microsoft.DirectX.DirectInput.Device <font COLOR="#008000">'キーボード用DirectInputデバイス<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mDIDevMouseEvent <font COLOR="#0000ff">As</font> 
+System.Threading.AutoResetEvent <font COLOR="#008000">'キーボード状態変化通知用イベント<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mEventWaitThread <font COLOR="#0000ff">As</font> 
+System.Threading.Thread <font COLOR="#008000">'イベント待機用スレッド<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> mExitThreadEvent <font COLOR="#0000ff">As</font> 
+System.Threading.AutoResetEvent <font COLOR="#008000">'イベント待機用スレッド終了イベント<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'デリゲート定義<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Delegate</font> 
+<font COLOR="#0000ff">Sub</font> LogAddDelegate(<font COLOR="#0000ff">ByVal</font> 
+Msg <font COLOR="#0000ff">As</font> <font COLOR="#0000ff">String</font>)<br>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>モジュール変数とデリゲートの宣言を行ってます。<br>
+VB6の時と同様に、キーボード用とマウス用で別のDirectInput.Deviceを用意します。<br>
+状態変化を伝えてもらうイベントは.Net Frameworkのものを使用します。<br> 
+<br> 
+また、イベントの発生は専用のスレッドで行うようにします。<br> 
+デリゲートはマルチスレッド下でのコントロールアクセス用です。<br> 
+（メインとは別のスレッドで動作するイベントハンドラから<br> 
+　メインスレッドで作成したリストボックスに対して行を追加させる為のものです。）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font SIZE="1"></font><font COLOR="#008000">'フォームロード時<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+Frm_Main_Load(<font COLOR="#0000ff">ByVal</font> sender <font COLOR="#0000ff">As</font> 
+System.Object, <font COLOR="#0000ff">ByVal</font> e <font COLOR="#0000ff">As</font> 
+System.EventArgs) <font COLOR="#0000ff">Handles</font> <font COLOR="#0000ff">MyBase</font>.Load<br>
+<font COLOR="#008000"><br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キーボードキャプチャ用デバイス生成<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevKey = <font COLOR="#0000ff">New</font> 
+DirectInput.Device(DirectInput.SystemGuid.Keyboard)<br>
+<font COLOR="#008000"><br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キーボードキャプチャ協調レベル設定（非アクティブでも取得　かつ　非排他的）<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevKey.SetCooperativeLevel(<font COLOR="#0000ff">Me</font>, 
+CooperativeLevelFlags.Background <font COLOR="#0000ff">Or</font> 
+CooperativeLevelFlags.NonExclusive)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キーボード状態変化通知用イベント生成<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevKeyEvent = <font COLOR="#0000ff">New</font> 
+System.Threading.AutoResetEvent(<font COLOR="#0000ff">False</font>)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キーボード状態変化通知用イベントの設定<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevKey.SetEventNotification(mDIDevKeyEvent)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'マウスキャプチャ用デバイス生成<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevMouse = <font COLOR="#0000ff">New</font> 
+DirectInput.Device(DirectInput.SystemGuid.Mouse)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'マウスキャプチャのバッファリングを有効にする(バッファサイズ指定)<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevMouse.Properties.BufferSize = 100<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'マウスキャプチャ協調レベル設定（非アクティブでも取得　かつ　非排他的）<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevMouse.SetCooperativeLevel(<font COLOR="#0000ff">Me</font>, 
+CooperativeLevelFlags.Background <font COLOR="#0000ff">Or _<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+CooperativeLevelFlags.NonExclusive)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'マウス状態変化通知用イベント生成<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevMouseEvent = <font COLOR="#0000ff">New</font> 
+System.Threading.AutoResetEvent(<font COLOR="#0000ff">False</font>)<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'マウス状態変化通知用イベントの設定<br>
+</font>&nbsp;&nbsp;&nbsp; mDIDevMouse.SetEventNotification(mDIDevMouseEvent)<br>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>フォームのLoadイベントでは、キーボード/マウスのキャプチャ準備と<br>
+イベント待機スレッドの作成を行ってます。<br>
+<br>
+DirectInputの基幹となるのはDirectInput.Deviceです。<br>
+キーボード用とマウス用のDirectInput.Deviceをそれぞれ作成します。<br>
+コンストラクタの引数でマウス用かキーボード用かが決まります。<br>
+なおここにジョイスティックのGUIDを指定することもできます。<br>
+（ジョイスティックの場合は、マウスやキーボードと違って一つとは限らないので<br>
+　列挙してそれぞれのジョイスティックのGUIDを取得する必要があります。<br>
+<br>
+作成後は協調レベルを設定します。<br>
+協調レベルについてはVB6時と定数名称は違いますが、内容は同じです。<br>
+「自アプリがアクティブ時のみ取得する」か「非アクティブでも取得する」か、<br>
+「自アプリのみ取得できる」か「他アプリも取得できる」か、<br>
+の２種の組合せになります。<br>
+今回はどちらも<br>
+　「自アプリが非アクティブでも取得でき、他アプリも取得できる」<br>
+の設定で使用します。<br>
+（要するに、他アプリと協調しつつ他アプリでの入力も取得できるという設定です）<br>
+<br>
+マウスの場合、バッファリングを有効にするため<br>
+mDIDevMouseのProperties.BufferSizeに100(バッファサイズ)を指定します。<br>
+バッファリングを使えば取りこぼしを防ぐことができます。<br>
+<br>
+次にそれぞれ用のAutoResetEventオブジェクトを生成し<br>
+それを引数にSetEventNotificationメソッドを呼び出します。<br>
+これで状態変化があったときに発生させるイベントが関連付けられ<br>
+マウスを動かしたりキーを押したりすると、<br>
+それぞれのイベントがシグナル状態となるようになります。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font SIZE="1"></font><font COLOR="#008000"><br>
+&nbsp;&nbsp;&nbsp; 'イベント待機用スレッド終了イベント生成<br>
+</font><font COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>mExitThreadEvent = <font COLOR="#0000ff">New</font> 
+System.Threading.AutoResetEvent(<font COLOR="#0000ff">False</font>)<br>
+<font COLOR="#008000"><br>
+&nbsp;&nbsp;&nbsp; 'イベント待機スレッド生成＆開始<br>
+</font><font COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>mEventWaitThread = <font COLOR="#0000ff">New</font> 
+System.Threading.Thread(<font COLOR="#0000ff">AddressOf</font> 
+EventWaitThreadMain)<br>
+<font COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>mEventWaitThread.Start()<br>
+<font COLOR="#0000ff">End</font> <font COLOR="#0000ff">Sub<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>イベントはシグナル状態となるまで別スレッドで待機します。<br>
+（メインスレッドで待っていたのではなにもできなくなるため）<br>
+その為のスレッドもフォームロード時に作成し、<br>
+そのスレッドを終了させるためのイベントも作成します。<br>
+（終了イベントをシグナル状態にすればイベント待機スレッドが終了するようにします）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font COLOR="#008000"><br>
+'キーボードのキャプチャ設定用チェックボタン状態変化時<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+Chk_Keyboard_CheckedChanged(<font COLOR="#0000ff">ByVal</font> sender <font COLOR="#0000ff">As</font> 
+System.Object, <font COLOR="#0000ff">ByVal</font> e <font COLOR="#0000ff">As</font> 
+System.EventArgs) <font COLOR="#0000ff">Handles</font> 
+Chk_Keyboard.CheckedChanged<br>
+<font COLOR="#0000ff"><br>
+&nbsp;&nbsp;&nbsp; If</font> Chk_Keyboard.Checked <font COLOR="#0000ff">Then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font COLOR="#008000">'アクセス権取得<br>
+</font><font COLOR="#0000ff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mDIDevKey.Acquire()<br>
+<font COLOR="#0000ff">&nbsp;&nbsp;&nbsp; Else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font COLOR="#008000">'アクセス権放棄<br>
+</font><font COLOR="#0000ff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mDIDevKey.Unacquire()<br>
+<font COLOR="#0000ff">&nbsp;&nbsp;&nbsp; End</font> <font COLOR="#0000ff">If<br>
+<br>
+End</font> <font COLOR="#0000ff">Sub<br>
+<br>
+</font><font COLOR="#008000">'マウスのキャプチャ設定用チェックボタン状態変化時<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+Chk_Mouse_CheckedChanged(<font COLOR="#0000ff">ByVal</font> sender <font COLOR="#0000ff">As</font> 
+System.Object, <font COLOR="#0000ff">ByVal</font> e <font COLOR="#0000ff">As</font> 
+System.EventArgs) <font COLOR="#0000ff">Handles</font> Chk_Mouse.CheckedChanged<br>
+<br>
+<font COLOR="#0000ff">&nbsp;&nbsp;&nbsp; If</font> Chk_Mouse.Checked <font COLOR="#0000ff">Then<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font COLOR="#008000">'アクセス権取得<br>
+</font><font COLOR="#0000ff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mDIDevMouse.Acquire()<br>
+<font COLOR="#0000ff">&nbsp;&nbsp;&nbsp; Else<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font><font COLOR="#008000">'アクセス権放棄<br>
+</font><font COLOR="#0000ff">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mDIDevMouse.Unacquire()<br>
+<font COLOR="#0000ff">&nbsp;&nbsp;&nbsp; End</font> <font COLOR="#0000ff">If<br>
+<br>
+End</font> <font COLOR="#0000ff">Sub<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>フォームロード時の処理でキーボード/マウスの状態変化をキャプチャする準備は整いました。<br>
+しかし実際キャプチャするには各デバイスのアクセス権を取得する必要があります。<br>
+また不要になったらアクセス権を放棄します。<br>
+この処理は各ボタン(チェックボックス)の状態変更時に行っています。<br>
+Acquireメソッド呼び出しでアクセス権を取得し、<br>
+Unacquireメソッドでアクセス権を破棄します。<br>
+なおAcquireメソッド呼び出し時に失敗して取得できない可能性があります。<br>
+その場合例外が発生しますが、このサンプルではその辺の処理を省略しています。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font COLOR="#008000"><br>
+'イベント待機スレッドメイン<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+EventWaitThreadMain()<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'待機するイベントを格納した配列<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> eventhandles() <font COLOR="#0000ff">As</font> 
+System.Threading.WaitHandle = {mExitThreadEvent, mDIDevKeyEvent, 
+mDIDevMouseEvent}<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Do<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'イベント待ち<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> 
+idx <font COLOR="#0000ff">As</font> <font COLOR="#0000ff">Integer</font> = 
+System.Threading.WaitHandle.WaitAny(eventhandles, 1000, <font COLOR="#0000ff">False</font>)<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'イベントの判断<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Select</font> 
+<font COLOR="#0000ff">Case</font> idx<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+Array.IndexOf(eventhandles, mExitThreadEvent)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#008000">'スレッド終了イベント<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#0000ff">Exit</font> <font COLOR="#0000ff">Do<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+Array.IndexOf(eventhandles, mDIDevKeyEvent)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#008000">'キー状態変化イベント<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+OnKeyEvent()<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+Array.IndexOf(eventhandles, mDIDevMouseEvent)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#008000">'マウス状態変化イベント<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+OnMouseEvent()<br>
+<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+System.Threading.WaitHandle.WaitTimeout<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#008000">'タイムアウト発生<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">End</font> 
+<font COLOR="#0000ff">Select<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Loop<br>
+<br>
+End</font> <font COLOR="#0000ff">Sub<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>上記が各種イベントの発生（シグナル状態になる）を待機するスレッドの処理です。<br>
+イベントは、終了用/キーボード用/マウス用の３つあります。<br>
+これを配列に入れておいて、WaitAnyメソッドでどれかがシグナルになるまで待ちます。<br>
+（実際には1000ミリ秒でタイムアウトが発生するようにしています）<br>
+<br>
+WaitAnyは戻り値として発生したイベントの(配列内の)番号を返しますので<br>
+それによりどんなイベントが発生したのかを判断します。<br>
+<br>
+mExitThreadEventイベントであれば、終了要求なので<br>
+無限ループを抜けてスレッドを終了させます。<br>
+<br>
+mDIDevKeyEventの場合はキーボードの状態変化で、OnKeyEventを呼び出します。<br>
+mDIDevMouseEventの場合はキーボードの状態変化で、OnMouseEventを呼び出します。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font SIZE="1"><br>
+</font><font COLOR="#008000">'キーボード状態変化イベント時の処理<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+OnKeyEvent()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<font COLOR="#008000"><br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キー状態の取得<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> keystate <font COLOR="#0000ff">As</font> 
+DirectInput.KeyboardState<br>
+&nbsp;&nbsp;&nbsp; keystate = mDIDevKey.GetCurrentKeyboardState()<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'押されているキーの判定<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> ss <font COLOR="#0000ff">As</font> 
+<font COLOR="#0000ff">New</font> System.Text.StringBuilder<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">For</font> <font COLOR="#0000ff">Each</font> 
+kk <font COLOR="#0000ff">As</font> DirectInput.Key <font COLOR="#0000ff">In</font> 
+[Enum].GetValues(<font COLOR="#0000ff">GetType</font>(DirectInput.Key))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">If</font> 
+keystate(kk) <font COLOR="#0000ff">Then<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'キーkkが押されている<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+ss.AppendFormat(<font COLOR="#800000">&quot;{0} &quot;</font>, kk)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">End</font> <font COLOR="#0000ff">If<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Next<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'ログに追加<br>
+</font>&nbsp;&nbsp;&nbsp; LogAdd(<font COLOR="#0000ff">String</font>.Format(<font COLOR="#800000">&quot;Key 
+: {0}&quot;</font>, ss.ToString))<br>
+<br>
+<font COLOR="#0000ff">End</font> <font COLOR="#0000ff">Sub<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>キーボードの状態変化が起きた場合は上記のプロシジャが呼び出されます。<br>
+<br>
+現在のキーボードの状態はGetCurrentKeyboardStateメソッドで取得します。<br>
+KeyboardStateはコレクションで、<br>
+各キー毎に押されているかどうかを示す値(True or False)が格納されています。<br> 
+サンプルでは押されているキーを列挙するためにFor Eachで全てを検査してますが、</p> 
+ 
+<table border="1" width="100%"> 
+ 
+  <tr> 
+ 
+    <td width="100%" bgcolor="#FFFFFF"> 
+ 
+<font SIZE="1"></font><font COLOR="#0000ff"><br>
+If</font> keystate(Key.NumPad4) <font COLOR="#0000ff">And</font> 
+keystate(Key.NumPad8) <font COLOR="#0000ff">Then<br>
+&nbsp;&nbsp;&nbsp; </font><font color="#008000">'テンキーの４と８が同時に押されている場合の処理<br>
+</font><font COLOR="#0000ff"><br>
+End</font> <font COLOR="#0000ff">If<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>という風に使うことができます。<br>
+（キーを指定して、そのキーが押されているか=True、<br>
+　押されていないか=falseを判断します）<br>
+<br>
+最後に押されているキーの名前とコード値をログに出力しています。<br>
+（押されているキーがなければ空白です。<br>
+　またリストボックスへの追加部分については省略します。）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<font SIZE="1"><br>
+</font><font COLOR="#008000">'マウス状態変化イベント時の処理<br>
+</font><font COLOR="#0000ff">Private</font> <font COLOR="#0000ff">Sub</font> 
+OnMouseEvent()<br>
+<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'バッファ取り出し<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> buf <font COLOR="#0000ff">As</font> 
+DirectInput.BufferedDataCollection = mDIDevMouse.GetBufferedData<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">If</font> buf <font COLOR="#0000ff">Is</font> 
+<font COLOR="#0000ff">Nothing</font> <font COLOR="#0000ff">Then</font> <font COLOR="#0000ff">Exit</font> 
+<font COLOR="#0000ff">Sub<br>
+<br>
+</font>#<font COLOR="#0000ff">If</font> 0 <font COLOR="#0000ff">Then<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'バッファの内容を順に取り出しログに出力（バッファの中身そのまま出力）<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">For</font> <font COLOR="#0000ff">Each</font> 
+dt <font COLOR="#0000ff">As</font> DirectInput.BufferedData <font COLOR="#0000ff">In</font> 
+buf<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'ログに追加<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LogAdd(<font COLOR="#0000ff">String</font>.Format(<font COLOR="#800000">&quot;Mouse 
+: {0} {1} {2} {3}&quot;</font>, dt.Sequence, dt.Offset, dt.Data, 
+dt.ButtonPressedData))<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Next<br>
+<br>
+</font>#<font COLOR="#0000ff">Else<br>
+<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#008000">'バッファの内容を順に取り出しログに出力（バッファの中身を編集して出力）<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> mov <font COLOR="#0000ff">As</font> 
+<font COLOR="#0000ff">New</font> Vector3<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Dim</font> movflag <font COLOR="#0000ff">As</font> 
+<font COLOR="#0000ff">Boolean</font> = <font COLOR="#0000ff">False<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">For</font> <font COLOR="#0000ff">Each</font> 
+dt <font COLOR="#0000ff">As</font> DirectInput.BufferedData <font COLOR="#0000ff">In</font> 
+buf<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Select</font> <font COLOR="#0000ff">Case</font> 
+dt.Offset<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+0 : mov.X += dt.Data : movflag = <font COLOR="#0000ff">True</font> <font COLOR="#008000">'横移動<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+4 : mov.Y += dt.Data : movflag = <font COLOR="#0000ff">True</font> <font COLOR="#008000">'縦移動<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+8 : mov.Z += dt.Data : movflag = <font COLOR="#0000ff">True</font> <font COLOR="#008000">'ホイール回転<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Case</font> 
+<font COLOR="#0000ff">Else</font> <font COLOR="#008000">'その他（ボタン押す/離す）<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#0000ff">If</font> movflag <font COLOR="#0000ff">Then<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+LogAdd(<font COLOR="#0000ff">String</font>.Format(<font COLOR="#800000">&quot;Mouse 
+: Move ({0}, {1}, {2})&quot;</font>, mov.X, mov.Y, mov.Z))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+mov = <font COLOR="#0000ff">New</font> Vector3(0, 0, 0) <font COLOR="#008000">'クリア<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+<font COLOR="#0000ff">End</font> <font COLOR="#0000ff">If<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+LogAdd(<font COLOR="#0000ff">String</font>.Format(<font COLOR="#800000">&quot;Mouse 
+: Button {0} {1}&quot;</font>, dt.Offset, IIf(dt.Data &lt;&gt; 0, <font COLOR="#800000">&quot;Down&quot;</font>, 
+<font COLOR="#800000">&quot;Up&quot;</font>)))<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">End</font> <font COLOR="#0000ff">Select<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">Next<br>
+</font>&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">If</font> movflag <font COLOR="#0000ff">Then<br>
+</font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; LogAdd(<font COLOR="#0000ff">String</font>.Format(<font COLOR="#800000">&quot;Mouse 
+: move=({0}, {1}, {2})&quot;</font>, mov.X, mov.Y, mov.Z))<br>
+&nbsp;&nbsp;&nbsp; <font COLOR="#0000ff">End</font> <font COLOR="#0000ff">If<br>
+</font>#<font COLOR="#0000ff">End</font> <font COLOR="#0000ff">If<br>
+<br>
+End</font> <font COLOR="#0000ff">Sub<br>
+</font>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>マウスの状態変化が起きた場合は上記のプロシジャが呼び出されます。<br>
+<br>
+マウスの状態変化はバッファリングされるため、<br>
+GetBufferedDataメソッドにて状態変化の内容が格納されたコレクションを取得し、<br>
+その中身をひとつづつみて必要な処理を行います。<br>
+<br>
+コレクションの要素であるBufferedDataは<br>
+Offsetプロパティで状態変化の種別、Dataプロパティで変化量や最新状態が取得できます。<br>
+この値はVB6時のDIDEVICEOBJECTDATA構造体のlOfs及びlDataに相当しますので<br>
+詳細はそちらの方を参照して下さい。<br>
+<br>
+#if 0 Thenの部分は、シンプルな表示にするか、<br> 
+人が見てわかりやすい表示にするかを切り替えているだけです。</p> 
+ 
+ 
+ 
+<hr> 
+ 
+<p>以上がVB2005(VB.NET)からDirectInputを使い、<br> 
+マウスの動き及びキーボード操作を捉える方法になります。<br> 
+全体の仕組みはVB6の時とは異なりますが、<br> 
+DirectInputの部分については、ほぼ一緒です。<br> 
+</p> 
+ 
+ 
+ 
+<hr> 
+ 
+<p><a href="../index.html">上に戻る</a></p> 
+ 
+ 
+ 
+</body> 
+ 
+ 
+ 
+</html> 
+ 

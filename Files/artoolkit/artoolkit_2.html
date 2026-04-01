@@ -1,0 +1,591 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>ARToolKit関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>ARToolKit関係</b></h1>
+
+<hr>
+
+<p><b>◎使い方</b><br>
+<br>
+ARToolKitLibの基本的な使い方をサンプルプログラムを元に説明します。<br>
+詳細は添付サンプルのSample_Simpleを参照してください。<br>
+</p>
+
+<p>
+<br>
+Sample_SimpleはARToolKit付属サンプルのsimpleを移植したプログラムです。<br>
+基本構造は元と同じですが、VB用に若干改造し、日本語のコメントを追加してあります。<br>
+このサンプルはカメラ映像をウィンドウに表示し、<br>
+マーカー画像を見つけた場合、その位置に箱を描画します。<br>
+マーカーはARToolKitのpatternsフォルダ内にある「pattHiro.pdf」です。<br>
+このPDFファイルを印刷してカメラで撮影して下さい。<br>
+<br>
+<br>
+<img border="0" src="artool3.jpg" width="336" height="277"><img border="0" src="artool4.jpg" width="336" height="277"><br>
+<br>
+左：サンプルsample_simpleの画面　　右：ただのカメラの画像(GraphEditで撮影)
+</p>
+
+<p>カメラで <b>四角のHiro</b><b> </b>を撮影すると、その位置に青色のボックスが描画されます。<br>  
+カメラを動かすマーカーの位置/角度に合わせてボックスも変化します。<br> 
+</p> 
+ 
+<hr> 
+ 
+<p><b>○参照設定</b></p> 
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'「ARToolKitLib.dll」と「OpenGLLib.dll」を参照設定してください。<br> 
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2">  
+      ManagedARToolKit<br> 
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2">  
+      OpenGLLib<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>まず、「参照の追加」で「ARToolKitLib.dll」と「OpenGLLib.dll」を追加します。<br> 
+マーカー検出だけならARToolKitLib.dllだけで可能ですが、<br> 
+検出箇所にボックスを描画するためにOpenGLLibが必要となります。<br> 
+「ARToolKitLib.dll」と「OpenGLLib.dll」を参照設定することで<br> 
+ManagedARToolKitとOpenGLLibが使用できるようになります。<br> 
+<br> 
+</p> 
+ 
+<hr> 
+ 
+<p> 
+ARToolKitでカメラで撮影したマーカーの上になにか物体を描くには<br> 
+<br> 
+このサンプルは下記のような構造となってます。<br> 
+<br> 
+<i>　GLUTの初期化<br> 
+</i>　　↓<i><br>
+　カメラの準備<br>
+</i>　　↓<i><br>
+　カメラパラメタの読込/設定<br>
+</i>　　↓<i><br>
+　マーカーの登録<br>
+</i>　　↓<i><br>
+　表示ウィンドウの準備<br>
+</i>　　↓<i><br>
+　キャプチャ開始<br>
+</i>　　↓<i><br>
+　メインループ<br>
+<br>
+　　　１フレーム読み込み<br>
+</i>　　　　↓<i><br>
+　　　マーカー検索<br>
+</i>　　　　↓<i><br>
+　　　マーカー位置決定<br>
+</i>　　　　↓<i><br>
+　　　描画</i><br>
+<br>
+</p>
+
+<hr>
+
+<p>
+<b>○GLUTの初期化</b></p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">'GLUT初期化処理（実は不要）<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> argc </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> = 1<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> argv() </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = {</font><font SIZE="2" COLOR="#0000ff">My</font><font SIZE="2">.Application.Info.ProductName}<br>
+      glutInit(argc, argv)<br>
+      </font></td>
+  </tr>
+</table>
+<p>GLUTを初期化します。が、この処理は不要だったりします。<br>
+（引数に深い意味もありません。）<br>
+</p>
+
+<hr>
+
+<p>
+<b>○カメラの準備
+</b></p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">'カメラ設定情報が格納されているファイル名<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> vconf </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = 
+      GetARToolKitInstallDirectory() + </font><font SIZE="2" COLOR="#a31515">&quot;\bin\data\WDM_camera_flipV.xml&quot;<br>
+      </font></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">'open the video path<br>   
+      'カメラの起動<br>   
+      </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2">    
+      arVideoOpen(vconf) &lt; 0 </font><font SIZE="2" COLOR="#0000ff">Then<br>   
+      　　End<br>
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br>
+      </font></td>
+  </tr>
+</table>
+<p>カメラの属性を指定して、カメラを初期化します。<br>
+引数として入力ソースの情報が記述されているXMLファイルを指定します。<br>
+関数GetARToolKitInstallDirectory()は、<br>
+ARToolKitがインストールされている(であろう)フォルダを返します。<br>
+<br>
+このサンプルではARToolKitに付属している設定ファイル"WDM_camera_flipV.xml"を指定しています。<br>
+カメラ情報XMLファイルの形式については、<br>
+DVSLフォルダ下にDsVideoLib.xsdというスキーマファイルがありますので<br>
+詳細についてはそちらを参照してください。<br>
+<br>
+例）カメラ入力：上下反転、サイズ等はダイアログで選択（WDM_camera_flipV.xmlと同じ）</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#C0C0C0"><font SIZE="2"><br>
+      </font>&lt;?xml version="1.0" encoding="UTF-8"?><br>   
+      &lt;dsvl_input><br>   
+      　　&lt;camera show_format_dialog="true"><br>   
+      　　　　&lt;pixel_format><br>
+      　　　　　　&lt;RGB32 flip_h="false" flip_v="true"/><br>   
+      　　　　&lt;/pixel_format><br>
+      　　&lt;/camera><br>
+      &lt;/dsvl_input><font SIZE="2"><br>
+      </font></td>
+  </tr>
+</table>
+<p><br>
+例）カメラ入力：上下反転、サイズは640x480でダイアログ表示なし</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#C0C0C0"><font SIZE="2"><br>
+      </font>&lt;?xml version="1.0" encoding="UTF-8"?><br>   
+      &lt;dsvl_input><br>   
+      　　&lt;camera frame_width="640" frame_height="480"><br>   
+      　　　　&lt;pixel_format><br>
+      　　　　　　&lt;RGB32 flip_h="false" flip_v="true"/><br>   
+      　　　　&lt;/pixel_format><br>
+      　　&lt;/camera><br>
+      &lt;/dsvl_input><font SIZE="2"><br>
+      </font></td>
+  </tr>
+</table>
+<p>　</p>
+
+<hr>
+
+<p>
+<b>○カメラパラメタの読込/設定</b></p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> xsize, 
+      ysize </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'画像サイズ<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> thresh </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> = 100 </font><font SIZE="2" COLOR="#008000">'マーカー認識時の二値化しきい値<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> count </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> = 0 </font><font SIZE="2" COLOR="#008000">'フレーム数<br>
+      <br>
+      'カメラパラメタが格納されているファイル名<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      cparam_name </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = 
+      GetARToolKitInstallDirectory() + </font><font SIZE="2" COLOR="#a31515">&quot;\bin\Data\camera_para.dat&quot;<br>
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> cparam </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> ARParam </font><font SIZE="2" COLOR="#008000">'カメラパラメタ<br>
+      </font></td>
+  </tr>
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">'find the size of the window<br>  
+      '画像サイズを取得<br>  
+      </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2">   
+      arVideoInqSize(xsize, ysize) &lt; 0 </font><font SIZE="2" COLOR="#0000ff">Then<br>  
+      　　End<br>
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br>
+      </font><font SIZE="2">Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;Image 
+      size (x,y) = ({0},{1})&quot;</font><font SIZE="2">, xsize, ysize)<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">'set the initial camera parameters<br>  
+      'カメラパラメタを読み込む<br>  
+      </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2">   
+      arParamLoad(cparam_name, 1, wparam) &lt; 0 </font><font SIZE="2" COLOR="#0000ff">Then<br>  
+      </font><font SIZE="2"><font color="#0000ff">　　</font>Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;Camera   
+      parameter load error !!&quot;</font><font SIZE="2">)<br>  
+      　　</font><font SIZE="2" COLOR="#0000ff">End<br>
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br>
+      <br>
+      </font><font SIZE="2">arParamChangeSize(wparam, xsize, ysize, cparam) </font><font SIZE="2" COLOR="#008000">'読み込んだカメラパラメタを画像サイズに合わせて調整<br>
+      </font><font SIZE="2">arInitCparam(cparam) </font><font SIZE="2" COLOR="#008000">'カメラを初期化<br>  
+      </font><font SIZE="2">Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;***   
+      Camera Parameter ***&quot;</font><font SIZE="2">)<br>  
+      arParamDisp(cparam) </font><font SIZE="2" COLOR="#008000">'カメラパラメタの表示<br>  
+      </font></td>  
+  </tr>  
+</table>  
+<p>カメラパラメタとは、カメラのレンズ特製などから導き出される係数で<br>  
+キャリブレーションを行うことでカメラ毎に用意します。<br>  
+が、ARToolKitに添付されているサンプルデータでもそれなりの結果が出ます。<br>  
+<br>  
+まず今回使う画像のサイズをarVideoInqSizeで取得し<br>  
+ベースとなるカメラパラメタをarParamLoadで読み込み<br>  
+arParamChangeSizeで画像サイズに合わせて<br>  
+読み込んだカメラパラメタを調整します。<br>  
+最後に調整が済んだカメラパラメタをarInitCparamで設定することにより、<br>  
+以後の計算で使用されるようになります。<br>  
+<br>  
+なおarParamDispは何も出力しません。（手抜き～）<br>  
+</p>   
+   
+   
+   
+<hr>  
+  
+<p>  
+<b>○マーカー登録  
+</b>   
+</p>   
+   
+   
+   
+<table border="1" width="100%">  
+  <tr>  
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>  
+      </font><font SIZE="2" COLOR="#008000">'マーカーパターンの読み込み/登録<br> 
+      </font><font SIZE="2">patt_id = arLoadPatt(patt_name)<br> 
+      </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> patt_id  
+      &lt; 0 </font><font SIZE="2" COLOR="#0000ff">Then<br> 
+      </font><font SIZE="2"><font color="#0000ff">　　</font>Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;pattern  
+      load error !!&quot;</font><font SIZE="2">) </font><font SIZE="2" COLOR="#008000">'<br> 
+      </font><font size="2" color="#008000">　　</font><font SIZE="2" COLOR="#0000ff">End<br>
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br>
+      </font></td>
+  </tr>
+</table>
+<p>マーカーのパターンはarLoadPatt()で読み込みます。<br>
+戻り値としてパターンを認識するIDが返されます。<br>
+このIDは検索結果から目的のマーカーを探すために必要になります。<br>
+</p> 
+ 
+ 
+ 
+<hr>
+
+<p>
+<b>○表示ウィンドウの準備</b> 
+</p> 
+ 
+ 
+ 
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">'open the graphics window<br> 
+      '描画ウィンドウの準備<br> 
+      </font><font SIZE="2">argInit(cparam, 1.0, 0, 0, 0, 0)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+argInitで画像サイズにあったウィンドウなどが用意されます。  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○キャプチャ開始</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'キャプチャ開始<br> 
+      </font><font SIZE="2">arVideoCapStart()<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>arVideoCapStartでキャプチャを開始します。<br> 
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○メインループ開始</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'メインループ開始(復帰なし)<br> 
+      </font><font SIZE="2">argMainLoop(</font><font SIZE="2" COLOR="#0000ff">Nothing</font><font SIZE="2">,  
+      keyEvent_Ptr, mainLoop_Ptr)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+argMainLoopではマウスイベント用関数、キーイベント用関数、メイン更新関数を指定します。<br>  
+各関数のデリゲートを指定してください。（不要なところはNothingが指定できます。）<br>  
+<br> 
+argMainLoopはGLUTのglMainLoopを使っています。<br> 
+OpenGLのページでも触れてますが、<br> 
+<font size="5">  
+argMainLoop(glMainLoop)を呼び出すと戻ってきません。</font><br> 
+<br> 
+使わない方法も面倒ですが一応ありますので、<br> 
+アプリにするならそちらの方がいいかと思います。<br> 
+argMainLoopを使わない方法はサンプルの「Sample_NotUseArgMainLoop」を参照してください。  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○メインループ：１フレーム読み込み</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'main loop<br> 
+      'メインループ処理(argMainLoopから繰り返し呼び出される）<br> 
+      </font><font SIZE="2" COLOR="#0000ff">Sub</font><font SIZE="2"> mainLoop()<br> 
+      　</font><font size="2">　</font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      dataPtr </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      ARUPointer </font><font SIZE="2" COLOR="#008000">'イメージデータのアドレス<br>
+      </font><font COLOR="#0000ff" size="2">　</font><font SIZE="2" COLOR="#0000ff">　Dim</font><font SIZE="2"> 
+      marker_info </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      ARMarkerInfo = </font><font SIZE="2" COLOR="#0000ff">Nothing</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'発見したマーカー情報<br>
+      </font><font COLOR="#0000ff" size="2">　</font><font SIZE="2" COLOR="#0000ff">　Dim</font><font SIZE="2"> 
+      marker_num </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'発見したマーカーの数<br>
+      </font><font COLOR="#0000ff" size="2">　</font><font SIZE="2" COLOR="#0000ff">　Dim</font><font SIZE="2"> 
+      j, k </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer<br>
+      <br>
+      </font><font size="2" color="#0000ff">　　</font><font SIZE="2" COLOR="#008000">'grab  
+      a vide frame<br> 
+      　　'カメラから１フレーム読み込み<br>
+      </font><font SIZE="2"><font color="#008000">　　</font>dataPtr =  
+      arVideoGetImage()<br> 
+      </font><font size="2">　　</font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+      dataPtr.IsNull </font><font SIZE="2" COLOR="#0000ff">Then<br>
+      </font><font SIZE="2"><font color="#0000ff">　　　　</font>arUtilSleep(2)  
+      </font><font SIZE="2" COLOR="#008000">'読み込み失敗時は2ms待機し、次のフレームへ<br> 
+      </font><font COLOR="#0000ff" size="2">　</font><font SIZE="2" COLOR="#0000ff">　　　Return<br>
+      　　End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br>
+      　　If</font><font SIZE="2"> count = 0 </font><font SIZE="2" COLOR="#0000ff">Then</font><font SIZE="2"> 
+      arUtilTimerReset() </font><font SIZE="2" COLOR="#008000">'フレームレート計算用のタイマーをリセット<br>
+      </font><font SIZE="2"><font color="#008000">　　</font>count += 1 </font><font SIZE="2" COLOR="#008000">'フレーム数加算<br> 
+      <br> 
+      </font><font SIZE="2"><font color="#008000">　　</font>argDrawMode2D() </font><font SIZE="2" COLOR="#008000">'２Ｄ描画モードへ<br> 
+      </font><font SIZE="2"><font color="#008000">　　</font>argDispImage(dataPtr,  
+      0, 0) </font><font SIZE="2" COLOR="#008000">'読み込んだ画像を描画<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+arVideoGetImageにてカメラから１フレームを読み込みます。<br>  
+失敗した場合（開始直後などまだカメラに画像が読み込まれてない場合など）はNullが返されるので<br>  
+その場合は少しだけ待って、再度読み込みを試します。<br>  
+countは終了時にフレームレートを表示するためのフレームカウンタです。<br>  
+<br>  
+サンプルではargDispImageで読み込んだ画像を表示しています。<br>  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○メインループ：マーカー検索</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'detect the markers in the video  
+      frame<br> 
+      '画像からマーカーを検索<br> 
+      </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2">  
+      arDetectMarker(dataPtr, thresh, marker_info, marker_num) &lt; 0 </font><font SIZE="2" COLOR="#0000ff">Then<br> 
+      　　</font><font SIZE="2">cleanup() </font><font SIZE="2" COLOR="#008000">'検索に失敗した場合、終了<br> 
+      </font><font COLOR="#0000ff" size="2">　　</font><font SIZE="2" COLOR="#0000ff">End<br> 
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br> 
+      </font><font SIZE="2"><br> 
+      arVideoCapNext() </font><font SIZE="2" COLOR="#008000">'次のフレームの準備<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+arDetectMarkerで画像中のマーカーを検索します。<br>  
+検索した結果は配列としてメモリ内に格納され、<br>  
+marker_infoに先頭(アドレス)が、marker_numに個数が返されます。<br>  
+<br>  
+arVideoCapNextを呼び出すと次のフレームの読み込みに着手しますが、<br>  
+描画が検索が終わった後に呼び出す必要があります。<br>  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○メインループ：マーカー位置決定</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'check for object visibility<br> 
+      '発見されたマーカー情報の中で、最もスコアが大きい位置を選出<br> 
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      marker_info_arr() </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      ARMarkerInfo = marker_info.GetArray(marker_num)<br> 
+      k = -1<br> 
+      </font><font SIZE="2" COLOR="#0000ff">For</font><font SIZE="2"> j = 0 </font><font SIZE="2" COLOR="#0000ff">To</font><font SIZE="2">  
+      marker_num - 1<br> 
+      　　</font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+      patt_id = marker_info_arr(j).id </font><font SIZE="2" COLOR="#0000ff">Then<br>
+      </font><font SIZE="2">　　　　</font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+      k = -1 </font><font SIZE="2" COLOR="#0000ff">Then<br>
+      </font><font SIZE="2">　　　　　　k = j </font><font SIZE="2" COLOR="#008000">'初見のマーカー情報を仮選択<br> 
+      </font><font SIZE="2">　　　　</font><font SIZE="2" COLOR="#0000ff">ElseIf</font><font SIZE="2">  
+      marker_info_arr(k).cf &lt; marker_info_arr(j).cf </font><font SIZE="2" COLOR="#0000ff">Then<br> 
+      </font><font SIZE="2">　　　　　　k = j </font><font SIZE="2" COLOR="#008000">'よりスコアの大きいマーカー情報を選択<br> 
+      </font><font SIZE="2">　　</font><font SIZE="2">　　</font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">If<br> 
+      </font><font SIZE="2">　　</font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">If<br>
+      Next<br>
+      If</font><font SIZE="2"> k = -1 </font><font SIZE="2" COLOR="#0000ff">Then<br>
+      </font><font SIZE="2">　　argSwapBuffers() </font><font SIZE="2" COLOR="#008000">'見つからなかった場合、何もしないで次のフレームへ<br> 
+      </font><font SIZE="2">　　</font><font SIZE="2" COLOR="#0000ff">Return<br> 
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">If<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+まず、arDetectMarkerで取得した先頭マーカー情報から<br>  
+marker_num個数分だけマーカー情報を配列に取り出します。（marker_infoのGetArrayメソッド）<br>  
+取り出したARMarkerInfo配列の中から、<br>  
+ターゲットのマーカーパターン(id)で最もスコア(cf)が高い情報を選出します。<br>  
+ターゲットマーカーの情報がなければ検出できなかった事を意味します。<br>  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<p><b>  
+○メインループ：描画</b>  
+</p>  
+  
+  
+  
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br> 
+      </font><font SIZE="2" COLOR="#008000">'get the transformation between the  
+      marker and the real camera<br> 
+      'マーカーの位置情報(2D位置)から実際の位置情報(3D位置)へ変換する行列(マーカー変換行列)を取得<br> 
+      </font><font SIZE="2">arGetTransMat(marker_info_arr(k), patt_center,  
+      patt_width, patt_trans)<br> 
+      <br> 
+      draw() </font><font SIZE="2" COLOR="#008000">'マーカー上にボックスを描画<br> 
+      <br> 
+      </font><font SIZE="2">argSwapBuffers() </font><font SIZE="2" COLOR="#008000">'バッファ切り替えを行い、画面を更新<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p>  
+マーカーが見つかった場合、その位置にボックスを描画します。<br>  
+描画はOpenGL(GLUT)のglutSolidCubeでおこなってます。<br>  
+<br>  
+OpenGLで描画するときに使用する変換行列は、<br>  
+まずarGetTransMatで選出したマーカー情報から３×４の行列を取得し、<br>  
+その行列をargConvGlparaでGL用の４×４行列に変換して取得します。<br>  
+（この辺がARToolKitのキモというか、私的に一番面白い所ですね。）<br>  
+<br> 
+<br>  
+以上がもっともシンプルなサンプルの説明になります。  
+</p>  
+  
+  
+  
+<hr> 
+ 
+<hr> 
+ 
+<p><b>  
+◎サンプル</b><br>  
+ARSampleで始まるサンプルはARToolKit付属サンプルを移植したものです。<br>  
+<br>  
+<br>  
+○ARSample_Simple<br>  
+ARToolKit付属サンプルsimpleを移植したサンプルです。<br>  
+カメラ映像内のマーカーの上にボックスを描画します。<br>  
+<br>  
+○ARSample_MultiTest<br>  
+ARToolKit付属サンプルmultiTestを移植したサンプルです。<br>  
+６個のマーカーを認識し、それぞれの上にボックスを描画します。<br>  
+<br>  
+○Sample_DLLCheck<br>  
+ARToolKitLib.dllが呼び出せるかどうかを確認するためのサンプルです。<br>  
+ARToolKitのバージョンとインストールパスを表示します。<br>  
+<br>  
+○Sample_NotUseArgMainLoop<br>  
+argMainLoopを使用しないでsimpleと同等の動作を実現するサンプルです。<br>  
+画像取り込みにOpenCV、検索にARToolKit、描画にOpenGLを使用しています。<br>  
+<img border="0" src="artool2.jpg" width="336" height="277"> 
+</p> 
+ 
+ 
+ 
+<p>ボックスじゃなくてティーポットにしてみました。 
+</p> 
+ 
+ 
+ 
+<hr> 
+ 
+<p><a href="../index.html">上に戻る</a></p> 
+ 
+</body> 
+ 
+ 
+ 
+</html> 
+ 

@@ -1,0 +1,139 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenGL関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>OpenGL関係(VB2005)</b></h1>
+
+<hr>
+
+<h2>０．準備
+</h2>
+
+<p>OpenGLとはSilicon Graphics社(シリコングラフィックス社、SGI)が開発した<br> 
+グラフィック機能を提供するライブラリ（のプログラムインターフェース）です。<br>
+同様のものとしてはDirectX(Direct3D/DirectGraphics)がありますが、<br>
+私の中での両者の違いは下記のように感じています。（あくまでも個人的感想）<br>
+<br>
+　<b>DirectX</b><br>
+　・<b><font color="#0000FF">最高のパフォーマンスが出せる</font></b><font color="#0000FF">。（HW機能を目一杯使える）</font><br>
+　・<font color="#0000FF">最新カードの機能に素早く対応する。</font><br>
+　・<font color="#FF00FF">バージョンアップが多く、かつ、旧仕様を簡単に捨てる</font>。<br>
+　　（<font color="#FF00FF">新しい機能を使おうとすると、全体を作り直しするはめになったりする</font>）<br>
+　・出来る事が多いが、しなければならない事も多い。（面倒）<br>
+　・<font color="#0000FF">マニュアルはしっかりとある。</font><br>
+　・ゲーム用。かつ、Windows専用(最近はXBOXも含むか)。<br>
+<br>
+　<b>OpenGL</b><br>
+　・そこそこのパフォーマンスが得られる。(用途によもるが大抵の場合OpenGLで事足りる)<br>
+　・出来ることが少ない。(複雑な事をしようとするとかなり面倒なことをしないといけない)<br>
+　・<font color="#0000FF">単純な描画なら非常に簡単にできる。</font><br>
+　・<font color="#0000FF">バージョンアップがほとんどなく、かつ、ソースレベルでの互換性に優れている。</font><br>
+　・<font color="#FF00FF">VBでの情報が少ない。（VB用以外なら実は多い）</font><br>
+　・CADやモデリングツールなどのアプリ用。<br>
+　・WindowsでもLinuxでも同一ソースで実行できるものが作れる。<br>
+<br>
+<br>
+<b>OpenGLのDLLはWindows(NT3.5/95以降)に含まれている</b>ので特に準備することなく使用できます。<br>
+ただしOpenGLは色々な環境で動作できるよう「Windowsのウィンドウ」とか「画面モード」とか<br>
+そういうプラットフォームに依存する部分に関する機能は提供しません。<br>
+要するに<font size="5">OpenGL本体だけでは画面にグラフィックを表示することができない</font>んです。<br>
+<br>
+多くの場合「OpenGL」という大分類で括られてしまうのですが、実はOpenGLはいくつかのライブラリから構成されています。
+</p>
+
+<table border="1" width="64%">
+  <tr>
+    <td width="16%" align="center">ライブラリ名</td>
+    <td width="84%">
+      <p align="center">概要</td>
+  </tr>
+  <tr>
+    <td width="16%" align="center">GL</td>
+    <td width="84%">		OpenGL本体。狭義のOpenGL。</td>
+  </tr>
+  <tr>
+    <td width="16%" align="center">GLU</td>
+    <td width="84%">		OpenGL Utility Library。GLの機能を補助する便利な(数学)関数などがある。</td> 
+  </tr>
+  <tr>
+    <td width="16%" align="center">AUX</td>
+    <td width="84%">		入出力に関する補助(拡張)を行う拡張ライブラリ。</td>
+  </tr>
+  <tr>
+    <td width="16%" align="center">GLUT</td>
+    <td width="84%">	OpenGL Utility Toolkit。AUX同様の拡張ライブラリ。(AUXの拡張版みたいなもの）</td> 
+  </tr>
+  <tr>
+    <td width="16%" align="center">WGL</td>
+    <td width="84%">		Windows用の拡張ライブラリ。</td>
+  </tr>
+  <tr>
+    <td width="16%" align="center">GLX</td>
+    <td width="84%">		X Window System用の拡張ライブラリ。</td> 
+  </tr>
+  <tr>
+    <td width="16%" align="center">AGL</td>
+    <td width="84%">		Apple Mac用の拡張ライブラリ。</td> 
+  </tr>
+</table>
+<p>GL/GLUは環境に依存しない純粋なグラフィックライブラリと言えます。<br>
+三角形を描くとか行列計算をするといった機能は提供しますが、<br>
+<b>どのウィンドウに表示するとか、画面モードはどうするといった機能はない</b>んです。。<br>
+そういった物理的というか環境によって異なる部分を提供するのがAUX/GLUT/WGL/GLX/AGLになります。<br>
+またAUX/GLUTはWindowsでもUnixで同じやり方で出来るようにしようというもので、<br>
+WGL/GLX/AGLはそれぞれのプラットフォーム専用のライブラリになります。<br>
+<br>
+Windows上でOpenGLを使って画面にグラフィックを表示するには、<br>
+　(1) GL(＋GLU)＋GLUT<br>
+　(2) GL(＋GLU)＋AUX<br>
+　(3) GL(＋GLU)＋WGL<br>
+のいずれか(或いは複数の組み合わせも可)で使うことになるのですが、<br>
+AUXは古くて機能が足りない(そもそも学習用で実践むきではない)、<br>
+WGLはWindowsだけしかダメ、といった理由から(1)のやり方がよく使われます。<br>
+（GLUTはキーやマウスなどの入力機能なども提供してくれます。<br>
+　通常unixとWindowsではそういう部分が異なりますが、GLUTを使うことで同じやり方＝同じソースでunix用とWindows用を書ける訳です。）<br>
+<br>
+注意して欲しいのは、上記のライブラリの内GL/GLU/AUX/WGLはWindowsに入ってますが<br>
+GLUTは含まれていないということです。別途インストールする必要があります。<br>
+下記あたりで入手できます。<br>
+　　<a href="http://www.xmission.com/~nate/glut.html">http://www.xmission.com/~nate/glut.html</a><br>
+<b>glut-3.7.6-bin.zip</b>をダウンロードし、パスの通った箇所に展開しましょう。<br>
+（SYSTEM32フォルダあたりに突っ込むのが一番楽かも。実行ファイルと同じフォルダに入れても大丈夫かもしれません)<br>
+<br>
+もちろんGLUTを使用しないならば、インストールする必要はありません。<br>
+確かにGLUTは移植性に優れてますが、VB2005で作ったものをWindows以外の環境で実行させたり<br>
+多言語に移植しようとするなら拡張ライブラリは見直すべきでしょう。(^^;<br>
+<br>
+っていうか一応GLUTもこのページで扱ってますが、<font size="5">私自身はVB2005から使おうと思いません</font>。<br>
+プログラム構造に関する考え方がWindowsアプリとは合わないように感じます(^^;;;<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+</body>
+
+
+
+</html>
+

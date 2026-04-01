@@ -1,0 +1,412 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<p><b>DirectShow関係4(クラスライブラリ)</b></p>
+
+<p><b>1．機能</b></p>
+
+
+
+<hr>
+
+<p>◎DirectShowインターフェース<br>
+<br>
+現在利用可能なDirectShowのインターフェースを下記に示します。<br>
+<pre>IGraphBuilder, IFilterGraph, IMediaControl, IMediaPosition, IVideoWindow,
+
+IBasicVideo2, IBasicAudio, IMediaEvent, IMediaEventEx, IMediaSeeking,
+
+ICaptureGraphBuilder2, IFileSinkFilter, IAMCopyCaptureFileProgress, IAMVideoProcAmp,
+
+IBaseFilter, IPersist, IMediaFilter, IEnumFilters, IAMStreamConfig,
+
+IAMStreamSelect, IMediaSample, IPin, IEnumPins, IReferenceClock,
+
+ISampleGrabber, ISampleGrabberCB, IVMRMixerBitmap9, IVMRMixerControl9
+
+IStreamBufferSink,IStreamBufferSource,IStreamBufferMediaSeeking,
+</pre>
+また、DirectShowのインターフェースではありませんが、<br>
+下記のインターフェースも定義されています。
+<pre>EnumSTATSTG, IStorage, IPersist, IPersistStream, 
+
+ISpecifyPropertyPages, ICreateDevEnum, IPropertyBag
+</pre>
+<p>
+インターフェースは、基本的にCでの名称と同じにしています。<br>
+使い方も同じですので、引数の意味などは<b>C用のDirectShowマニュアル</b>を参照して下さい。<br>
+</p>
+
+
+
+<hr>
+
+<p>◎ユーティリティ<br>
+<br>
+
+ユーティリティモジュールは下記の機能を提供します。
+
+</p>
+
+
+
+<table border="1" width="763" height="1566">
+  <col width="36" style="mso-width-source:userset;mso-width-alt:1152;width:27pt">
+  <col width="173" style="mso-width-source:userset;mso-width-alt:5536;width:130pt">
+  <col width="483" style="mso-width-source:userset;mso-width-alt:15456;width:362pt">
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" width="753" style="mso-ignore: colspan">汎用関数</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">CoCreateInstance</td>
+    <td width="500" height="16">COMオブジェクトのインスタンスを作成します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">ReleaseInstance</td>
+    <td width="500" height="16">COMオブジェクトのインスタンスをを解放します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">PtrToStructure</td>
+    <td width="500" height="16">アンマネージ領域からデータをコピーします。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" width="753"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">デバッグ関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">DebugPrint</td>
+    <td width="500" height="16">グラフの内容をコンソールに出力します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">SaveGraphFile</td>
+    <td width="500" height="16">グラフをGRFファイルに保存します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">LoadGraphFile</td>
+    <td width="500" height="16">GRFファイルからグラフを読込ます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">例外関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetDirectShowMessage</td>
+    <td width="500" height="16">戻り値等からDirectShow関連のエラーメッセージを取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">DirectShowException</td>
+    <td width="500" height="16">DirectShow関連の例外クラスです。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">グラフ構築関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">CreateNewGraph</td>
+    <td width="500" height="16">新しい空のグラフを生成します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">CreateFilter</td>
+    <td width="500" height="16">名称やCLSIDなどを指定しフィルタのインスタンスを生成します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">AddFilter</td>
+    <td width="500" height="16">名称やCLSIDなどを指定しグラフにフィルタを追加します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">グラフ操作関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GraphPlay</td>
+    <td width="500" height="16">グラフを再生させます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GraphStop</td>
+    <td width="500" height="16">グラフを停止させます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GraphPause</td>
+    <td width="500" height="16">グラフを一時停止させます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">PlayLoopStart</td>
+    <td width="500" height="16">再生中のグラフをループ再生させます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">PlayLoopStop</td>
+    <td width="500" height="16">ループ再生を終了させます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">情報取得関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumFilters</td>
+    <td width="500" height="16">カテゴリを指定しフィルタを列挙します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumPins</td>
+    <td width="500" height="16">フィルタのピンを列挙します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">FindPin</td>
+    <td width="500" height="16">条件にあうピンを検索します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">FindInterface</td>
+    <td width="500" height="16">グラフ内のフィルタから指定されたインターフェースを検索します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetFilterName</td>
+    <td width="500" height="16">フィルタの名称を取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetPinName</td>
+    <td width="500" height="16">ピンの名称を取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetVideoSize</td>
+    <td width="500" height="16">映像サイズを取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetGraphState</td>
+    <td width="500" height="16">グラフ状態を取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">フォーマット関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumFormat</td>
+    <td width="500" height="16">ピンがサポートしているフォーマットを列挙します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetFormatCount</td>
+    <td width="500" height="16">ピンがサポートしているフォーマットの個数を取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetFormat</td>
+    <td width="500" height="16">現在のフォーマットを取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">SetFormat</td>
+    <td width="500" height="16">使用するフォーマットを設定します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">列挙用アルゴリズム</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumFiltersAlgorithm</td>
+    <td width="500" height="16">フィルタ列挙のアルゴリズムを提供します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumPinsAlgorithm</td>
+    <td width="500" height="16">ピン列挙のアルゴリズムを提供します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">EnumFormatAlgorithm</td>
+    <td width="500" height="16">フォーマット列挙のアルゴリズムを提供します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">プロパティページ関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">OpenDiaglog</td>
+    <td width="500" height="16">フィルタ又はピンのプロパティページを表示します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">メディアタイプ関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">DeleteMediaType</td>
+    <td width="500" height="16">メディアタイプの領域を解放します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">CompGUIDString</td>
+    <td width="500" height="16">GUID文字列同士の比較お行います。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">NormalizeGUIDString</td>
+    <td width="500" height="16">GUID文字列を一般的な形式に整えます。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">GetMediaTypeName</td>
+    <td width="500" height="16">メディアタイプのGUID文字列からわかりやすい名称を取得します。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" colspan="3" style="mso-ignore: colspan" width="747">ビデオレンダラ関係</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1">・</td>
+    <td width="246" height="16">SetVideoRendererOwner</td>
+    <td width="500" height="16">指定されたウィンドウ/コントロール内で動画再生されるようにします。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="32" width="1">・</td>
+    <td width="246" height="32">SetVideoRendererEventOwner</td>
+    <td width="500" height="32">レンダラでのマウス操作を指定されたウィンドウ/コントロールで<br>
+      イベントとして認識できるようにします。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3">サンプルグラバ関連</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="32" width="1">・</td>
+    <td width="246" height="32">FrameCapture</td>
+    <td width="500" height="32">カメラ又は動画ファイルから、<br>
+      静止画データを取り込む機能を提供するクラスです。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="747" colspan="3">カメラ選択</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="10" width="1">・</td>
+    <td width="246" height="10">SelectCameraDialog</td>
+    <td width="500" height="10">カメラをユーザに選択させるダイアログです。</td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1"></td>
+    <td width="246" height="16"></td>
+    <td width="500" height="16"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1"></td>
+    <td width="246" height="16"></td>
+    <td width="500" height="16"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1"></td>
+    <td width="246" height="16"></td>
+    <td width="500" height="16"></td>
+  </tr>
+  <tr height="18" style="height:13.5pt">
+    <td height="16" width="1"></td>
+    <td width="246" height="16"></td>
+    <td width="500" height="16"></td>
+  </tr>
+</table>
+<p>　
+
+</p>
+
+
+
+<p><br>
+概要の所でも触れましたが、あえて「関数」という形で提供しています。<br>
+DirectShowのサポート範囲は結構広く様々な操作があって(私にとっては)複雑すぎるため、<br>
+全てをサポートできるようなクラスは私には作れません。<br>
+誰か作ってください(^^;;;<br>
+<br>
+このクラスライブラリはDirectSHowの全ての機能を提供する訳ではないです。<br>
+っていうか、その一割にも満たないでしょう。<br>
+<br>
+足りない機能があったらリクエストしてください。<br>
+(すぐには追加できない可能性がありますが^^;)
+
+</p>
+
+
+
+<p>　
+
+</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

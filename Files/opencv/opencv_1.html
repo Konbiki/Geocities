@@ -1,0 +1,653 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<h1><b>OpenCV関係(VB2005)</b></h1>
+
+<hr>
+
+<h2><b>1</b><b>．</b>サンプル１（輪郭線抽出）</h2>
+
+<p>サンプルプログラムを元にVB(VB2005)からのOpenCVの使い方を説明します。<br>
+全ソースは下記からダウンロードできます。<br>
+<a href="OpenCVDemo1.lzh">OpenCVDemo1.lzh</a></p>
+
+<p><img border="0" src="opencv1.jpg" width="967" height="430"></p>
+
+<p><br>
+このサンプルプログラムは、<br>
+接続されているカメラの画像をSRCウィンドウに表示し、輪郭線の映像をOUTウィンドウに表示します。<br>
+OUTウィンドウ上部にある二つのパラメタで輪郭線抽出時のしきい値を変更できます。<br>
+Startボタン押下で動作を開始し、Endボタン押下で終了します。<br>
+<br>
+API定義以外の全コードは下記になります。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+Option Explicit On
+Option Strict On
+
+Imports System.Runtime.InteropServices
+Imports OpenCVDemo1.Cv
+Imports OpenCVDemo1.CvTypes
+Imports OpenCVDemo1.CxCore
+Imports OpenCVDemo1.CxTypes
+Imports OpenCVDemo1.HighGUI
+
+Public Class Form1
+
+    '定数定義
+    Private Const SRCIMAGEWINDOW As String = &quot;SRC&quot;      'ソース画像ウィンドウの名称
+    Private Const OUTIMAGEWINDOW As String = &quot;OUT&quot;      '出力画像ウィンドウの名称
+    Private Const THRESHOLDTRACKBAR1 As String = &quot;TRK1&quot; 'しきい値用トラックバーの名称
+    Private Const THRESHOLDTRACKBAR2 As String = &quot;TRK2&quot; 'しきい値用トラックバーの名称
+
+    'メンバ変数
+    Private mIsRunning As Boolean       '現在動作中か？
+    Private mThreshold1 As Integer      'しきい値
+    Private mThreshold2 As Integer      'しきい値
+
+    '----------------------------------------------------------
+
+    'Startボタン押下時
+    Private Sub Btn_Start_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Btn_Start.Click
+
+        '状態チェック
+        If mIsRunning Then Exit Sub
+
+        '準備
+        mThreshold1 = 30 'しきい値１の初期値
+        mThreshold2 = 90 'しきい値２の初期値
+
+        'ウィンドウの準備
+        cvNamedWindow(SRCIMAGEWINDOW, CV_WINDOW_AUTOSIZE)   'カメライメージウィンドウ作成
+        cvNamedWindow(OUTIMAGEWINDOW, CV_WINDOW_AUTOSIZE)   '出力イメージウィンドウ
+        cvCreateTrackbar(THRESHOLDTRACKBAR1, OUTIMAGEWINDOW, IntPtr.Zero, 1000, AddressOf CallbackTrackbar1) 'しきい値１用トラックバー作成
+        cvCreateTrackbar(THRESHOLDTRACKBAR2, OUTIMAGEWINDOW, IntPtr.Zero, 1000, AddressOf CallbackTrackbar2) 'しきい値２用トラックバー作成
+        cvSetTrackbarPos(THRESHOLDTRACKBAR1, OUTIMAGEWINDOW, mThreshold1) '初期値設定
+        cvSetTrackbarPos(THRESHOLDTRACKBAR2, OUTIMAGEWINDOW, mThreshold2) '初期値設定
+
+        'キャプチャソースの準備
+        Dim cap As IntPtr
+        cap = cvCreateCameraCapture(0)   '0番のデバイス、つまり最初に見つかるデバイスを使用
+        If cap = IntPtr.Zero Then
+            MsgBox(&quot;カメラ等が接続されていないか、使用できません。&quot;)
+            Exit Sub
+        End If
+
+        '画像サイズ取得
+        Dim srcimg As IntPtr = cvQueryFrame(cap)    '１フレーム取得
+        Dim srcimgdata As IplImage = CType(Marshal.PtrToStructure(srcimg, GetType(IplImage)), IplImage) '構造体にコピー
+        Dim sz As New CvSize(srcimgdata.width, srcimgdata.height) 'サイズを取得
+
+        'ワーク用イメージ準備
+        Dim gryimg As IntPtr = cvCreateImage(sz, IPL_DEPTH_8U, 1)   'グレースケールイメージ
+        Dim outimg As IntPtr = cvCreateImage(sz, IPL_DEPTH_8U, 1)   '出力イメージ
+
+        '入力と出力のデータ格納方式をあわせる(上下反転対策)
+        Dim outimgdata As IplImage = CType(Marshal.PtrToStructure(outimg, GetType(IplImage)), IplImage) '構造体にコピー
+        outimgdata.origin = srcimgdata.origin   'データ順をあわせる
+        Marshal.StructureToPtr(outimgdata, outimg, True) 'アンマネージ領域にコピー
+
+        'ループ
+        mIsRunning = True
+        Do While mIsRunning
+
+            'キャプチャデバイスからイメージ取得
+            srcimg = cvQueryFrame(cap)
+
+            '出力画像作成
+            cvCvtColor(srcimg, gryimg, CV_BGR2GRAY)     'カラーからグレーに変換
+            cvCanny(gryimg, outimg, mThreshold1, mThreshold2, 3)    '輪郭線抽出
+
+            '描画
+            cvShowImage(SRCIMAGEWINDOW, srcimg)
+            cvShowImage(OUTIMAGEWINDOW, outimg)
+
+            Application.DoEvents()
+        Loop
+
+        'キャプチャソースの破棄
+        cvReleaseCapture(cap)
+
+        'イメージの破棄
+        cvReleaseImage(gryimg)
+        cvReleaseImage(outimg)
+
+        'ウィンドウの破棄
+        cvDestroyWindow(SRCIMAGEWINDOW)
+        cvDestroyWindow(OUTIMAGEWINDOW)
+
+    End Sub
+
+    '終了ボタン押下時
+    Private Sub Btn_End_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Btn_End.Click
+
+        'ループ用フラグのクリア
+        mIsRunning = False
+
+    End Sub
+
+    'フォームを閉じる時
+    Private Sub Form1_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+        If mIsRunning Then
+            MsgBox(&quot;Endボタンで終了させて下さい。&quot;)
+            e.Cancel = True
+        End If
+    End Sub
+
+    '----------------------------------------------------------
+
+    'しきい値用トラックバー動作時のコールバック関数
+    Private Sub CallbackTrackbar1(ByVal Pos As Integer)
+        mThreshold1 = Pos   'しきい値１の値を退避
+    End Sub
+    Private Sub CallbackTrackbar2(ByVal Pos As Integer)
+        mThreshold2 = Pos   'しきい値２の値を退避
+    End Sub
+
+
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+    End Sub
+End Class
+</pre>
+    </td>
+  </tr>
+</table>
+
+<hr>
+
+<p><br>
+<b>◎API定義</b><br>
+<br>
+VBからOpenCVを使う場合、OpenCVインストールフォルダ下のbinフォルダにあるDLLを呼び出して使います。<br>
+（前ページで案内しているものがインストールされているとして話を進めます）<br>
+<br>
+VBからアンマネージのDLLを呼び出すためにはDeclare文やDllImport属性を使った定義が必要になります。<br>
+その都度定義してもいいのですが毎回同じなので私はまとめて定義したモジュールを用意して使ってます。<br>
+上でダウンロードできるアーカイブ中にある「OpenCVDefine.vb」がそのモジュールです。<br>
+OpenCVを使うプログラムを作ってみたいという方はこのモジュールファイルを<br>
+メニュー[プロジェクト]-[既存項目の追加]でご自身のプロジェクトに追加して使ってください。<br>
+<br>
+ただし、この定義集はOpenCVのヘッダファイルから機械的に生成したものです。<br>
+よって動作確認をとっていない関数があります。<br>
+っていうか動作を確認した関数の方が極々一部です(^^;<br>
+間違いを見つけた場合は教えて頂けるとうれしいです。<br>
+<br>
+またこのソースはOpenCVのソースを元に機械的に作成しているのでOpenCVのライセンスに従う事になるかもしれません。<br>
+OpenCVのライセンス事項を見る限り商用利用も可能で組み込んだもののソースを公開する義務もありませんが、<br>
+著作権に関する情報の提示が必要かもしれません。使われる場合は各自確認して下さい。<br>
+<br>
+<br>
+実はVB6でもOpenCVのネタをやろうと思ってたのですが、問題があってやってませんでした。<br>
+それはOpenCVのAPIの呼び出し規則が「<b>_cdecl</b>」であるためで、<br>
+通常のAPIのようにVB6から呼び出すと問題が発生していたんです。<br>
+<br>
+VB6は<b>_</b><b>stdcall</b>での呼び出し規則にしか対応しておらず、<br>
+<b>_stdcall</b>では呼び出し先つまりAPI内でスタックを戻しますが、<b>_cdecl</b>では呼び出し元がスタックを戻さなければなりません。<br>
+やっとVB.Netからは_cdeclでの呼び出しも可能となったため素直に直接呼び出すことが可能になったのでした。<br>
+</p>
+
+<hr>
+
+<p><b>◎インポート</b></p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2" COLOR="#0000ff">Option</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Explicit</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">On<br>
+      Option</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Strict</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">On<br>
+      <br>
+      Imports</font><font SIZE="2"> System.Runtime.InteropServices<br>
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2"> 
+      OpenCVDemo1.Cv<br>
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2"> 
+      OpenCVDemo1.CvTypes<br>
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2"> 
+      OpenCVDemo1.CxCore<br>
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2"> 
+      OpenCVDemo1.CxTypes<br>
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2"> 
+      OpenCVDemo1.HighGUI</font></td>
+  </tr>
+</table>
+
+<p>Imports文にて<br>
+アンマネージ領域とのやり取りを行うための機能が定義されている<br>
+System.Runtime.InteropServicesと<br>
+OpenCVのAPIや定数等が定義されているOpenCVDefine.vb中の<br>
+各クラスをインポートします。</p>
+
+<hr>
+
+<p><b>◎定数とメンバ変数定義</b></p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2" COLOR="#0000ff">Public</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Class</font><font SIZE="2"> Form1<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">'定数定義<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Const</font><font SIZE="2"> 
+      SRCIMAGEWINDOW </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = </font><font SIZE="2" COLOR="#800000">&quot;SRC&quot;</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'ソース画像ウィンドウの名称<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Const</font><font SIZE="2"> 
+      OUTIMAGEWINDOW </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = </font><font SIZE="2" COLOR="#800000">&quot;OUT&quot;</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'出力画像ウィンドウの名称<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Const</font><font SIZE="2"> 
+      THRESHOLDTRACKBAR1 </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = </font><font SIZE="2" COLOR="#800000">&quot;TRK1&quot;</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'しきい値用トラックバーの名称<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Const</font><font SIZE="2"> 
+      THRESHOLDTRACKBAR2 </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">String</font><font SIZE="2"> = </font><font SIZE="2" COLOR="#800000">&quot;TRK2&quot;</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'しきい値用トラックバーの名称<br>
+      <br>
+      'メンバ変数<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> 
+      mIsRunning </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Boolean</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#008000">'現在動作中か？<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> 
+      mThreshold1 </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> </font><font SIZE="2" COLOR="#008000">'しきい値<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> 
+      mThreshold2 </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2"> </font><font SIZE="2" COLOR="#008000">'しきい値<br>
+      </font></td>
+  </tr>
+</table>
+
+<p>定数はソース(入力)画像と出力画像を表示するウィンドウの名称としきい値を変更するためのトラックバー(スライドバー)の名称です。<br>
+OpenCVにはウィンドウやトラックバーなどのコントロールがありますが、Windowsのそれらのとは扱い方が異なり、<br>
+どのウィンドウか？どのトラックバーか？の指定はハンドル等ではなく「名称」で行います。<br>
+何箇所も出てくるので定数として定義しています。<br>
+<br>
+メンバ変数については以後の説明の中で説明していきます。</p>
+
+<hr>
+
+<p><b>◎Startボタン押下時(メインループ準備)</b></p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"></font><font SIZE="2" COLOR="#008000">'----------------------------------------------------------<br>
+      'Startボタン押下時<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub</font><font SIZE="2"> 
+      Btn_Start_Click(</font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      sender </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      System.Object, </font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      e </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      System.EventArgs) </font><font SIZE="2" COLOR="#0000ff">Handles</font><font SIZE="2"> 
+      Btn_Start.Click<br>
+      </font><font SIZE="2" COLOR="#008000"><br>
+      &nbsp;&nbsp;&nbsp; '状態チェック<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+      mIsRunning </font><font SIZE="2" COLOR="#0000ff">Then</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Exit</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; '準備</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">mThreshold1 
+      = 30 </font><font SIZE="2" COLOR="#008000">'しきい値１の初期値</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">mThreshold2 
+      = 90 </font><font SIZE="2" COLOR="#008000">'しきい値２の初期値<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'ウィンドウの準備</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cvNamedWindow(SRCIMAGEWINDOW, 
+      CV_WINDOW_AUTOSIZE) </font><font SIZE="2" COLOR="#008000">'カメライメージウィンドウ作成</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cvNamedWindow(OUTIMAGEWINDOW, 
+      CV_WINDOW_AUTOSIZE) </font><font SIZE="2" COLOR="#008000">'出力イメージウィンドウ</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cvCreateTrackbar(THRESHOLDTRACKBAR1, 
+      OUTIMAGEWINDOW, IntPtr.Zero, 1000, </font><font SIZE="2" COLOR="#0000ff">AddressOf</font><font SIZE="2"> 
+      CallbackTrackbar1) </font><font SIZE="2" COLOR="#008000">'しきい値１用トラックバー作成</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cvCreateTrackbar(THRESHOLDTRACKBAR2, 
+      OUTIMAGEWINDOW, IntPtr.Zero, 1000, </font><font SIZE="2" COLOR="#0000ff">AddressOf</font><font SIZE="2"> 
+      CallbackTrackbar2) </font><font SIZE="2" COLOR="#008000">'しきい値２用トラックバー作成</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000"><br>
+      </font></td>
+  </tr>
+</table>
+
+<p>入力画像と出力画像を表示する為のウィンドウを作成します。<br>
+ウィンドウ自体は<b>cvNamedWindow</b>に名前を指定するだけで作ってくれます。<br>
+第２引数に<b>CV_WINDOW_AUTOSIZE</b>を指定した場合、<br>
+中に表示した画像に合わせてウィンドウサイズを自動的に調整してくれます。<br>
+<br>
+出力画像ウィンドウ(<b>OUTIMAGEWINDOW</b>)には、<br>
+しきい値変更用の二つのトラックバーを作成します。<br>
+トラックバーはcvCreateTrackbarで作成します。<br>
+<font color="#0000FF">　cvCreateTrackbarの引数<br>
+　　第１引数：トラックバーの名前<br>
+　　第２引数：ウィンドウの名称（このウィンドウ上に作成されます）<br>
+　　第３引数：値が格納される領域のポインタ<br>
+　　第４引数：最大数<br>
+　　第５引数：変更されたときに呼び出されるCvTrackbarCallback型のデリゲート関数</font><br>
+第１引数、第２引数、及び、第４引数は説明の必要はないでしょう。<br>
+第３引数はちゃんと説明すると長くなのではしょりますが、<br>
+トラックバーの値が変わったときに自動的に値を更新してくれる領域のポインタを指定します。<br>
+アンマネージ領域のアドレスを指定しなければならないので面倒ですから今回は使いませんでした。<br>
+第５引数にはトラックバーを変更させたときに呼び出してもらいたい関数のアドレスを指定します。<br>
+このサンプルでは<i>CallbackTrackbar1</i>/<i>CallbackTrackbar2</i>という関数がそれになります。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2" COLOR="#008000">'----------------------------------------------------------<br>
+      'しきい値用トラックバー動作時のコールバック関数<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub</font><font SIZE="2"> 
+      CallbackTrackbar1(</font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      Pos </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">)<br>
+      &nbsp;&nbsp;&nbsp; mThreshold1 = Pos </font><font SIZE="2" COLOR="#008000">'しきい値１の値を退避<br>
+      </font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+      <br>
+      Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub</font><font SIZE="2"> 
+      CallbackTrackbar2(</font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      Pos </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">)<br>
+      &nbsp;&nbsp;&nbsp; mThreshold2 = Pos </font><font SIZE="2" COLOR="#008000">'しきい値２の値を退避<br>
+      </font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+      </font></td>
+  </tr>
+</table>
+
+<p>この関数は引数を一つ持ち、その値が現在のトラックバーの値になります。<br>
+各関数ではそれぞれメンバ変数に格納しています。<br>
+これで、<i>mThreshold1</i>/<i>mThreshold2</i>にはそれぞれのトラックバーの値が格納されます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      </font><font SIZE="2">cvSetTrackbarPos(THRESHOLDTRACKBAR1, OUTIMAGEWINDOW, 
+      mThreshold1) </font><font SIZE="2" COLOR="#008000">'初期値設定</font><font SIZE="2"><br>
+      &nbsp;&nbsp;&nbsp; cvSetTrackbarPos(THRESHOLDTRACKBAR2, OUTIMAGEWINDOW, 
+      mThreshold2) </font><font SIZE="2" COLOR="#008000">'初期値設定</font><font SIZE="2" COLOR="#0000ff"><br>
+      </font></td>
+  </tr>
+</table>
+
+<p><b>cvSetTrackbarPos</b>はトラックバーの値を設定する関数です。<br>
+トラックバーとウィンドウの名称、そして設定したい値を引数に呼び出します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"></font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      'キャプチャソースの準備<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      cap </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> IntPtr<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cap 
+      = cvCreateCameraCapture(0) </font><font SIZE="2" COLOR="#008000">'0番のデバイス、つまり最初に見つかるデバイスを使用<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+      cap = IntPtr.Zero </font><font SIZE="2" COLOR="#0000ff">Then</font><font SIZE="2"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;</font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      </font><font SIZE="2">MsgBox(</font><font SIZE="2" COLOR="#800000">&quot;カメラ等が接続されていないか、使用できません。&quot;</font><font SIZE="2">)<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;</font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      </font><font SIZE="2" COLOR="#0000ff">Exit</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">If<br>
+      </font></td>
+  </tr>
+</table>
+
+<p>OpenCVではカメラからの入力などもしてくれます。<br>
+機能が限定されている分、DirectShowよりも格段に楽に静止画を取得でき、<br>
+基本的な流れとしては<br>
+　<b>cvCreateCameraCapture</b>でカメラキャプチャを作成<br>
+　<b>cvQueryFrame</b>で現在のフレームを取得<br>
+　（画面に表示したり、各種変換を行ったり）<br>
+　<b>cvReleaseCapture</b>で解放<br>
+となります。<br>
+cvCreateCameraCaptureの引数はデバイス番号で0を指定すれば最初に見つかったカメラを使用します。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      '画像サイズ取得<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      srcimg </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvQueryFrame(cap) </font><font SIZE="2" COLOR="#008000">'１フレーム取得<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      srcimgdata </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IplImage = </font><font SIZE="2" COLOR="#0000ff">CType</font><font SIZE="2">(Marshal.PtrToStructure(srcimg, 
+      </font><font SIZE="2" COLOR="#0000ff">GetType</font><font SIZE="2">(IplImage)), 
+      IplImage) </font><font SIZE="2" COLOR="#008000">'構造体にコピー<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      sz </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+      CvSize(srcimgdata.width, srcimgdata.height) </font><font SIZE="2" COLOR="#008000">'サイズを取得<br>
+      </font></font></td>
+  </tr>
+</table>
+
+<p>ここでは画像のサイズを取得しています。<br>
+<b>cvCreateCameraCapture</b>で取得したハンドルを引数に<b>cvQueryFrame</b>を呼び出し<br>
+現在のフレームを取得します。<br>
+そのイメージデータ(<b>IplImage</b>)からサイズを取得しています。(変数szに格納されます)<br>
+OpenCVでは画像を<b>IplImage</b>型データとして扱います。<br>
+イメージ(<b>IplImage</b>型)には画像のビットデータの他にサイズなども含まれます。<br>
+（このページでは<b>IplImage</b>型データの事を「イメージ」と呼んでます。<br>
+　また目に見える映像そのもの(ビットマップ)は「画像」と呼んで区別しています。<br>
+　つまり「イメージ」といったらビットマップデータ＋サイズ等の情報だと思ってください。）<br>
+<br>
+<br>
+画像処理をメインに考えたい場合は不要かもしれませんが、<br>
+VB(VB2005)でOpenCVを使う上で理解しておいた方がよいことを補足説明しておきます。<br>
+<br>
+<b>cvQueryFrame</b>は戻り値として<b>IplImage</b>型データのポインタ(アンマネージ領域のアドレス)を返します。<br>
+そのままでは使い難いので、<b>PtrToStructure</b>メソッドを用いて<br>
+マネージ領域の<b>IplImage</b>型領域(変数<b>srcimgdata</b>)にコピーしています。<br>
+このとき構造体の各項目毎にマーシャリング(要は変換)をしてくれます。<br>
+これにより<i>srcimgdata</i>の各メンバを見る事で<b>IplImage</b>型データにアクセスできる訳です。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      'ワーク用イメージ準備<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      gryimg </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvCreateImage(sz, IPL_DEPTH_8U, 1) </font><font SIZE="2" COLOR="#008000">'グレースケールイメージ<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      outimg </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvCreateImage(sz, IPL_DEPTH_8U, 1) </font><font SIZE="2" COLOR="#008000">'出力イメージ<br>
+      </font></font></td>
+  </tr>
+</table>
+
+<p>画像変換するときに使用する作業用のイメージ(<b>IplImage</b>型データ)を作成しています。<br>
+イメージは<b>cvCreateImage</b>で作成します。<br>
+<font color="#0000FF">　cvCreateImageの引数<br>
+　　第１引数：サイズ（CvSize型）<br>
+　　第２引数：画像のビット深度<br>
+　　第３引数：チャンネル数</font><br>
+第１引数には上で取得したサイズ情報(カメラ画像のサイズ)を指定します。<br>
+第２引数のビット深度には符号なし8ビットを表す<b>IPL_DEPTH_8U</b>を指定しています。(普通はこれで十分かと)<br>
+第３引数のチャンネル数には、グレースケール画像の場合は１、カラーの場合は３を指定します。<br>
+<b>cvCreateImage</b>はアンマネージ領域に<b>IplImage</b>型データを準備し、そのポインタを返します。<br>
+ここでは単にポインタとして扱うので<b>IntPtr</b>型変数に入れてます。<br>
+<i>gryimg</i>は入力画像をグレースケールに変換したイメージが格納され<br>
+<i>outimg</i>は出力画像(輪郭線)が格納されます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      '入力と出力のデータ格納方式をあわせる(上下反転対策)<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      outimgdata </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IplImage = </font><font SIZE="2" COLOR="#0000ff">CType</font><font SIZE="2">(Marshal.PtrToStructure(outimg, 
+      </font><font SIZE="2" COLOR="#0000ff">GetType</font><font SIZE="2">(IplImage)), 
+      IplImage) </font><font SIZE="2" COLOR="#008000">'構造体にコピー<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>outimgdata.origin 
+      = srcimgdata.origin <font SIZE="2" COLOR="#008000">'データ順をあわせる<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>Marshal.StructureToPtr(outimgdata, 
+      outimg, <font SIZE="2" COLOR="#0000ff">True</font><font SIZE="2">) </font><font SIZE="2" COLOR="#008000">'アンマネージ領域にコピー<br>
+      </font></font></td>
+  </tr>
+</table>
+
+<p>イメージの格納方法にはいくつかの種類があります。<br>
+通常扱うのは画像の上から格納するやり方(トップダウン)と下から格納するやり方(ボトムアップ)です。<br>
+(たぶん歴史的な理由により)カメラからの取得したイメージは通常ボトムアップで、<br>
+<b>cvCreateImage</b>で作成したイメージはトップダウンです。<br>
+このままだと上下が逆さまになってしまうので、出力用入力画像の形式にあわせています。<br>
+<br>
+ここでも画像サイズ取得と同様に<br>
+アンマネージ領域のデータ(<i>outimg</i>)をマネージ領域(<i>outimgdata</i>)にコピー(<b>PtrToStructure</b>)し、<br>
+格納方式を表すoriginを変更した後、<br>
+今度はマネージ領域(<i>outimgdata</i>)からアンマネージ領域(<i>outimg</i>)にコピー(<b>StructureToPtr</b>)しています。<br>
+面倒ですが.Net Frameworkの仕様上どうしようもありません。（たぶん）<br> 
+<br>
+以上で動作するための準備は完了です。</p>
+
+<hr>
+
+<p><b>◎メインループ</b></p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      'ループ<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>mIsRunning 
+      = <font SIZE="2" COLOR="#0000ff">True<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Do</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">While</font><font SIZE="2"> 
+      mIsRunning<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font><font SIZE="2" COLOR="#008000">'キャプチャデバイスからイメージ取得<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font>srcimg = cvQueryFrame(cap)<font SIZE="2" COLOR="#008000"><br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font><font SIZE="2" COLOR="#008000">'出力画像作成<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font>cvCvtColor(srcimg, gryimg, CV_BGR2GRAY) <font SIZE="2" COLOR="#008000">'カラーからグレーに変換<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font>cvCanny(gryimg, outimg, mThreshold1, mThreshold2, 3) <font SIZE="2" COLOR="#008000">'輪郭線抽出<br>
+      <br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; '描画<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 
+      </font>cvShowImage(SRCIMAGEWINDOW, srcimg)<br>
+      <font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>cvShowImage(OUTIMAGEWINDOW, 
+      outimg)<br>
+      <br>
+      <font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>Application.DoEvents()<font SIZE="2" COLOR="#0000ff"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Loop</font><font SIZE="2" COLOR="#008000"><br>
+      </font></font></td>
+  </tr>
+</table>
+
+<p>メインループはこれだけです。<br>
+メインループは<i>mIsRunning</i>がTrueの間だけループします。<br>
+<i>mIsRunning</i>はEndボタン押下時にFalseに設定されます。<br>
+<br>
+流れとしては、<br>
+　<b>cvQueryFrame</b>で現在のフレームをソース画像として取得<br>
+　<b>cvCvtColor</b>でソース画像をグレースケール画像に変換<br>
+　グレースケール画像から<b>cvCanny</b>で輪郭線を抽出し出力画像に保存<br>
+　SRCウィンドウにソース画像、OUTウィンドウに出力画像を描画<br>
+　Windowsのイベント処理<br>
+となります。<br>
+<br>
+<br>
+<b>cvCvtColor</b>は画像形式の変換を行います。<br>
+第１引数のイメージを第２引数のイメージに第３引数のルールで変換し転送します。<br>
+第３引数のルールには、下記のようなものがあります。<br>
+　CV_BGR2GRAY&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; BGR形式からグレースケール<br>
+　CV_GRAY2BGR&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; グレースケールからBGR形式<br>
+　CV_RGB2YCrCb&nbsp;&nbsp;&nbsp;&nbsp; RGB形式からYCrCb形式<br>
+　CV_BGR2HSV&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; RGB形式からHSV形式<br>
+　CV_RGB2BGR565&nbsp;&nbsp; RGB形式(24ビット)からBGR565形式(16ビット)<br>
+チャンネル数を変えるもの、カラー空間を変えるもの、ビット深度を変えるもの、など様々な変換をサポートしています。<br>
+<br>
+<b>cvCanny</b>はCanny法と呼ばれるアルゴリズムを使って<br>
+グレースケール画像からエッジ部分(輪郭線)を抽出する関数です。<br>
+<font color="#0000FF">　cvCannyの引数<br>
+　　第１引数：元イメージ（グレースケール）<br>
+　　第２引数：出力先イメージ<br>
+　　第３引数：しきい値１<br>
+　　第４引数：しきい値２<br>
+　　第５引数：ソーベルオペレータ用パラメタ</font><br>
+Canny法というのは、まず二つのしきい値(第３引数及び第４引数)を使ってエッジを得て<br>
+弱いエッジ(第４引数)は強いエッジ(第３引数)に結合している場合のみ有効とする<br>
+というアルゴリズムでエッジを決定する方法です。<br>
+第５引数はエッジ検出でソーベルオペレーションを行うときのパラメタになります。<br>
+第５引数には 3,5,7 のいずれかを指定できます。<br> 
+<br>
+<b>cvShowImage</b>はイメージを指定したウィンドウに描画します。<br>
+今回のウィンドウは<b>CV_WINDOW_AUTOSIZE</b>を指定して作成しているのでサイズは自動的に調整してくれます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; 
+      'キャプチャソースの破棄<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>cvReleaseCapture(cap)<br>
+      <font SIZE="2" COLOR="#008000"><br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'イメージの破棄<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>cvReleaseImage(gryimg)<br>
+      <font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>cvReleaseImage(outimg)<font SIZE="2" COLOR="#008000"><br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'ウィンドウの破棄<br>
+      </font><font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>cvDestroyWindow(SRCIMAGEWINDOW)<br>
+      <font SIZE="2" COLOR="#008000">&nbsp;&nbsp;&nbsp; </font>cvDestroyWindow(OUTIMAGEWINDOW)<font SIZE="2" COLOR="#008000"><br>
+      </font></font></td>
+  </tr>
+</table>
+
+<p>キャプチャソースとウィンドウの破棄を行っています。<br>
+OpenCVは速度優先なところがあるせいか、破棄等を忘れるとあっという間にメモリを使い果たし重重になるときがありますので気をつけましょう。<br>
+<br>
+なお<b>cvQueryFrame</b>で取得したイメージ<i>srcimg</i>は破棄してはいけません。<br>
+システムで使いまわしている領域なので、破棄はシステムに任せます。</p>
+
+<hr>
+
+<p>以上がVB(VB2005)からOpenCVを使う一例になります。<br>
+このサンプルはOpenCVのユーザインタフェースを積極的に使ってます。<br>
+OpenCVで提供しているウィンドウ表示やスライダがそれになります。<br>
+一応VBフォームを使ってますが、単にサンプルを見やすくする為だけのものです。<br>
+<br>
+このやり方は移植性が高く環境に左右されない方式ですが、<br>
+そもそもVBのしかも.Net Framework上から使おうという場合ははっきり言って無意味だと思います。<br> 
+スライダやウィンドウなどはVB(.Net Framework)のそれを使った方がよりスマートなのではないでしょうか(^^;<br> 
+<br>
+カメラからの静止画取り込みなどはOpenCVを使った方が楽ですけどね。(その代わり細かい制御はできません)<br>
+<br>
+OpenCVのUIをあまり使わず、VBのフォーム等を積極的に使ったサンプルは「サンプル２(矩形検出)」を参考にして下さい。<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+
+
+<p>　</p>
+
+
+
+</body>
+
+
+
+</html>
+

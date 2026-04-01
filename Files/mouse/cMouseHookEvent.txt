@@ -1,0 +1,238 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+  Persistable = 0  'NotPersistable
+  DataBindingBehavior = 0  'vbNone
+  DataSourceBehavior  = 0  'vbNone
+  MTSTransactionMode  = 0  'NotAnMTSObject
+END
+Attribute VB_Name = "cMouseHookEvent"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = True
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+
+'////////////////////////////////////////////////////////////
+'マウスフックイベントクラス
+'////////////////////////////////////////////////////////////
+
+
+'////////////////////////////////////////////////////////////
+'定義
+Private Const MAX_ACTION = 8            '最大アクション数
+Private Const DEF_MINMOVE = 10          '最小の動き
+
+Private Const MOUSEEVENTF_RIGHTDOWN = 8&
+Private Const MOUSEEVENTF_RIGHTUP = 16&
+Private Const MOUSEEVENTF_ABSOLUTE = &H8000&
+
+Private Declare Sub mouse_event Lib "user32" (ByVal dwFlags As Long, ByVal dx As Long, ByVal dy As Long, ByVal cButtons As Long, ByVal dwExtraInfo As Long)
+Private Declare Function GetMessageExtraInfo Lib "user32" () As Long
+
+
+'////////////////////////////////////////////////////////////
+'イベント
+Event OnGetMessage(ByVal MsgID As Long, ByVal x As Long, ByVal y As Long, ByVal hwnd As Long, ByVal HitTestCode As Long, ByRef Cancel As Boolean)
+Event OnActionStart(ByVal MoveDir As Long)
+Event OnActionMove(ByVal MoveDir As Long, ByVal MoveCount As Long)
+Event OnActionEnd(ByVal MoveCount As Long)
+
+
+
+'////////////////////////////////////////////////////////////
+'プライベート変数
+Private mMinMove As Long
+
+Private mAction(MAX_ACTION - 1) As Long
+Private mActionIndex As Long
+Private mNowAction As Boolean
+Private mMessageSkip As Boolean
+
+Private mStartPosX As Long
+Private mStartPosY As Long
+Private mEndPosX As Long
+Private mEndPosY As Long
+Private mLastPosX As Long
+Private mLastPosY As Long
+
+
+
+'////////////////////////////////////////////////////////////
+'クラス初期化
+Private Sub Class_Initialize()
+    mMinMove = DEF_MINMOVE
+    mMessageSkip = False
+    mNowAction = False
+End Sub
+
+'クラス破棄
+Private Sub Class_Terminate()
+    
+End Sub
+
+
+'////////////////////////////////////////////////////////////
+'フックプロシジャからの呼び出し
+Public Function FireGetMessage(ByVal MsgID As Long, ByVal x As Long, ByVal y As Long, ByVal hwnd As Long, ByVal HitTestCode As Long) As Boolean
+    FireGetMessage = True
+    
+    Dim Cancel As Boolean
+    Cancel = False
+    RaiseEvent OnGetMessage(MsgID, x, y, hwnd, HitTestCode, Cancel)
+    If Cancel Then
+        Exit Function
+    End If
+    
+    If CheckAction(MsgID, x, y) Then
+        Exit Function
+    End If
+    
+    FireGetMessage = False
+End Function
+
+'動作の検出
+Private Function CheckAction(ByVal MsgID As Long, ByVal x As Long, ByVal y As Long) As Boolean
+    CheckAction = False
+    
+    Dim dx&, dy&, dd&
+    Dim sx&, sy&
+    
+    Select Case MsgID
+        Case &H200  'MOUSEMOVE
+            If mNowAction Then
+                dx = x - mLastPosX
+                dy = y - mLastPosY
+                sx = Sgn(dx)
+                sy = Sgn(dy)
+                If Sqr(dx * dx + dy * dy) > mMinMove Then
+                    dx = Abs(dx)
+                    dy = Abs(dy)
+                    If dx > dy / 3 Then
+                        sy = 0
+                    End If
+                    If dy > dx / 3 Then
+                        sx = 0
+                    End If
+                    
+                    AddAction sx, sy
+                    mLastPosX = x
+                    mLastPosY = y
+                End If
+                
+                CheckAction = True
+            End If
+        
+        Case &H204  'RIGHTDOWN
+            If mMessageSkip Then
+            Else
+                mNowAction = True
+                mLastPosX = x
+                mLastPosY = y
+                mStartPosX = x
+                mStartPosY = y
+                mActionIndex = 0
+                CheckAction = True
+            End If
+        
+        Case &H205  'RIGHTUP
+            If mMessageSkip Then
+                mMessageSkip = False
+            Else
+                mEndPosX = x
+                mEndPosY = y
+                mNowAction = False
+                If mActionIndex Then
+                    RaiseEvent OnActionEnd(mActionIndex)
+                Else
+                    'アクションなし
+                    mMessageSkip = True
+                    mouse_event MOUSEEVENTF_ABSOLUTE Or MOUSEEVENTF_RIGHTDOWN, mStartPosX, mStartPosY, 0, 0
+                    mouse_event MOUSEEVENTF_ABSOLUTE Or MOUSEEVENTF_RIGHTUP, mEndPosX, mEndPosY, 0, 0
+                End If
+            End If
+            
+    End Select
+    
+End Function
+
+
+'動作の追加
+Private Sub AddAction(ByVal sx As Long, ByVal sy As Long)
+    
+    Dim ang&
+    If mActionIndex < MAX_ACTION Then
+        
+        ang = GetAngle(sx, sy)
+        If ang < 0 Then
+            Exit Sub
+        End If
+        
+        If mActionIndex > 0 Then
+            If mAction(mActionIndex - 1) = ang Then
+                '前回と同じ
+                Exit Sub
+            End If
+        Else
+            '初めての動き
+            RaiseEvent OnActionStart(ang)
+        End If
+        
+        mAction(mActionIndex) = ang
+        mActionIndex = mActionIndex + 1
+        RaiseEvent OnActionMove(ang, mActionIndex)
+    End If
+    
+End Sub
+
+'移動方向から方向番号を取得
+Private Function GetAngle(ByVal sx As Long, ByVal sy As Long) As Long
+    If 0 < sx Then
+        If 0 < sy Then
+            GetAngle = 3
+        ElseIf sy = 0 Then
+            GetAngle = 2
+        Else
+            GetAngle = 1
+        End If
+    ElseIf sx < 0 Then
+        If 0 < sy Then
+            GetAngle = 5
+        ElseIf sy = 0 Then
+            GetAngle = 6
+        Else
+            GetAngle = 7
+        End If
+    Else
+        If 0 < sy Then
+            GetAngle = 4
+        ElseIf sy = 0 Then
+            GetAngle = -1
+        Else
+            GetAngle = 0
+        End If
+    End If
+End Function
+
+
+'////////////////////////////////////////////////////////////
+
+'認識された動作の数
+Public Property Get ActionCount() As Long
+    ActionCount = mActionIndex
+End Property
+
+'認識された動作
+Public Property Get ActionMove(ByVal Index As Long) As Long
+    If Index < 0 Or mActionIndex <= Index Then
+        ActionMove = -1
+    Else
+        ActionMove = mAction(Index)
+    End If
+End Property
+
+'保持される最大アクション数
+Public Property Get MaxAction() As Long
+    MaxAction = MAX_ACTION
+End Property
+

@@ -1,0 +1,180 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<h1><b>OpenCV関係2(クラスライブラリ)</b></h1>
+
+<hr>
+
+<h2><b>1．基本操作</b></h2>
+
+<hr>
+
+<h2>○イメージを作成する</h2>
+
+
+
+<p>　ここでいう「イメージ」とは、OpenCVのIplImageで管理される情報のことを表します。<br>
+　つまり、画像の色情報（ビットマップ）に加え、<br>
+　画像のサイズや格納方法なども含めた情報になります。<br>
+<br>
+　イメージを新規に作成するには、cvCreateImage()を使用します。<br>
+<br>
+　例）　640x480でカラー24ビット／ピクセルのイメージを作成します。<br>
+　　　　　　Dim srcptr As IntPtr<br> 
+　　　　　　srcptr = cvCreateImage(New CvSize(640, 480), IPL_DEPTH_8U, 3)<br> 
+<br>
+　第一引数はイメージのサイズをピクセル単位で指定します。<br>
+　第二引数はイメージのピット深度を指定します。<br>
+　符号なし８ビットの場合、IPL_DEPTH_8Uを指定します。<br>
+　第三引数はイメージのチャンネル数を指定します。<br>
+　グレイスケールの場合1、カラーの場合3を指定します。<br>
+<br>
+　cvCreateImage()の戻り値は、作成されたイメージのポインタになります。<br>
+<br>
+　なお、OpenCVUtilityクラスライブラリでは<br>
+　IplImageのラッパクラスIplImageWrapperのコンストラクタで<br>
+　サイズ指定、テンプレート指定、ビットマップ指定などの方法で<br>
+　イメージを作成する手段を提供します。<br>
+　<br>
+　例）　元となるIplImageWrapperと同じサイズ／チャンネル数のイメージ作成<br>
+　　　　　　Dim srcimg As New IplImageWrapper(tempimg)<br> 
+<br>
+　　　　元となるIplImageWrapperと同じサイズで指定したチャンネル数のイメージ作成<br>
+　　　　　　Dim srcimg As New IplImageWrapper(tempimg, 1)<br> 
+<br>
+　　　　サイズとチャンネル数のイメージ作成<br>
+　　　　　　Dim srcimg As New IplImageWrapper(320, 240, 3)<br> 
+<br>
+　　　　ビットマップが格納されたイメージ作成<br>
+　　　　　　Dim srcimg As New IplImageWrapper(Picture1.Image)<br> 
+<br>
+　　　　コンストラクタではなく、Createメソッドで作成することもできます。<br>
+　　　　　　Dim SrcImg as New IplImageWrapper()<br> 
+　　　　　　srcimg.Create(New CvSize(640, 480), 3)<br> 
+<br>
+</p>
+
+
+
+<hr>
+
+<h2>○ファイルから画像を読み込む</h2>
+
+
+
+<p>　ファイルから画像を読み込むには、cvLoadImage()を使用します。<br>
+　cvLoadImage()は新規に作成したイメージに<br>
+　BMP/Jpeg/PNGなどのファイルから画像を読み込んで<br>
+　IplImageのポインタを返します。<br>
+　読み込む際に画像形式(カラ－／グレイスケール)などを変更することもできます。<br>
+<br>
+　例）　ファイル(d:\src.bmp）から画像を読み込みます。<br>
+　　　　　　Dim srcptr As IntPtr<br> 
+　　　　　　srcptr = cvLoadImage("d:\src.bmp", CV_LOAD_IMAGE_UNCHANGED)<br> 
+<br>
+　例）　ファイル(d:\src.bmp）から画像を読み込み、<br>
+　　　　グレイスケールに変換します((ラッパクラス使用))<br>
+<br>
+　　　　　　Dim srcimg As New IplImageWrapper()<br> 
+　　　　　　srcimg.Ptr = cvLoadImage("d:\src.bmp", CV_LOAD_IMAGE_GRAYSCALE)<br> 
+<br>
+<br>
+　cvLoadImage()の第二引数は変換方式で、下記の組み合わせになります。<br>
+　　CV_LOAD_IMAGE_UNCHANGED(-1)		元のイメージのまま<br> 
+　　CV_LOAD_IMAGE_GRAYSCALE(0)		グレイスケールに変換<br> 
+　　CV_LOAD_IMAGE_COLOR(1)			カラーに変換<br> 
+　　CV_LOAD_IMAGE_ANYDEPTH(2)&nbsp;<br>
+　　CV_LOAD_IMAGE_ANYCOLOR(4)<br>
+　CV_LOAD_IMAGE_UNCHANGEDを含めると他のフラグは無効になります。<br>
+<br>
+</p>
+
+
+
+<hr>
+
+<h2>○カメラから画像を読み込む</h2>
+
+
+
+<p>　USBカメラなどから画像を読み込むには、HighGUIの機能を使用します。<br>
+　流れとしては下記のようになります。<br>
+　　①cvCreateCameraCaptureでキャプチャを開始する<br>
+　　②cvQueryFrameで１フレーム取得する<br>
+　　③cvReleaseCaptureでキャプチャを終了する<br>
+<br>
+　例）　カメラからの入力処理例<br>
+　　　　　　'キャプチャソース(カメラ)の準備<br>
+　　　　　　Dim cap As IntPtr<br> 
+　　　　　　cap = cvCreateCameraCapture(0)      '0番のキャプチャソース、つまり、最初に見つかったカメラを使用<br> 
+<br>
+　　　　　　Do&nbsp;<br>
+　　　　　　　　'カメラから１フレーム取得<br>
+　　　　　　　　srcimg.Ptr = cvQueryFrame(cap)<br> 
+<br>
+　　　　　　　　'画像処理や表示処理<br>
+<br>
+　　　　　　　　'メッセージ処理<br>
+　　　　　　　　Application.DoEvents()<br>
+　　　　　　Loop<br>
+<br>
+　　　　　　'キャプチャソースの破棄<br>
+　　　　　　cvReleaseCapture(cap)<br>
+<br>
+</p>
+
+
+
+<hr>
+
+<h2>○カラー空間を変換する</h2>
+
+
+
+<p>　RGBのイメージをHSVに変換したり、グレイスケールに変換したりするには<br>
+　cvCvtColorを使用します。<br>
+<br>
+　例）　RGBからグレイスケールに変換<br>
+　　　　　　cvCvtColor(SrcImgPtr, DstImgPtr, CV_BGR2GRAY)<br> 
+<br>
+　　　　　　SrcImgは３チャネルである必要があります。<br>
+　　　　　　DstImgは１チャネルである必要があります。<br>
+<br>
+　例）　RGBからグレイスケールに変換(ラッパクラス使用)<br>
+　　　　　　Dim SrcImg As New IplImageWrapper(SrcImgPtr)<br> 
+　　　　　　Dim DstImg As New IplImageWrapper(SrcImg, 1)<br> 
+　　　　　　cvCvtColor(SrcImg.Ptr, DstImg.Ptr, CV_BGR2GRAY)<br> 
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

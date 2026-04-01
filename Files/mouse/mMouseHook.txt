@@ -1,0 +1,96 @@
+Attribute VB_Name = "mMouseHook"
+Option Explicit
+
+'////////////////////////////////////////////////////////////
+'マウスフック用モジュール
+'////////////////////////////////////////////////////////////
+
+
+'////////////////////////////////////////////////////////////
+'定義
+Private Const GWL_HINSTANCE = -6&
+Private Const HC_ACTION = 0&
+Private Const WH_MOUSE = 7&
+
+Public Type tPoint
+    x As Long
+    y As Long
+End Type
+
+Public Type tMouseHookStruct
+    Point As tPoint
+    hwnd As Long
+    HitTestCode As Long
+    ExtraInfo As Long
+End Type
+
+
+'////////////////////////////////////////////////////////////
+'API
+Private Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongA" (ByVal hwd As Long, ByVal nIndex As Long) As Long
+Private Declare Function GetCurrentThreadId Lib "kernel32" () As Long
+Private Declare Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExA" (ByVal idHook As Long, ByVal lpfn As Long, ByVal hmod As Long, ByVal dwThreadId As Long) As Long
+Private Declare Function UnhookWindowsHookEx Lib "user32" (ByVal hHook As Long) As Long
+Private Declare Function CallNextHookEx Lib "user32" (ByVal hHook As Long, ByVal nCode As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As Long)
+
+
+'////////////////////////////////////////////////////////////
+'プライベート変数
+Private mHook As Long
+Private mHookEvent As cMouseHookEvent
+
+
+'////////////////////////////////////////////////////////////
+'フック開始
+Public Function SetHook(ByVal hwnd As Long) As cMouseHookEvent
+    
+    '前回のフックが残っていれば解放
+    ResetHook
+    
+    'インスタンスハンドルとスレッドIDの取得
+    Dim hInst&, tid&
+    hInst = GetWindowLong(hwnd, GWL_HINSTANCE)
+    If hInst = 0 Then Exit Function
+    tid = GetCurrentThreadId()
+    
+    'フック
+    mHook = SetWindowsHookEx(WH_MOUSE, AddressOf HookProc, hInst, tid)
+    
+    'イベントハンドラの準備
+    Set mHookEvent = New cMouseHookEvent
+    Set SetHook = mHookEvent
+    
+    Debug.Print "Start hook : " + Hex$(mHook)
+    
+End Function
+
+'フック解除
+Public Sub ResetHook()
+    If mHook Then
+        UnhookWindowsHookEx mHook
+        mHook = 0
+        Set mHookEvent = Nothing
+        Debug.Print "End hook"
+    End If
+End Sub
+
+
+'////////////////////////////////////////////////////////////
+'フックプロシジャ
+Private Function HookProc(ByVal nCode As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+    
+    If nCode = HC_ACTION Then
+        If Not mHookEvent Is Nothing Then
+            Dim mm As tMouseHookStruct
+            CopyMemory mm.Point.x, ByVal lParam, LenB(mm)
+            
+            If mHookEvent.FireGetMessage(wParam, mm.Point.x, mm.Point.y, mm.hwnd, mm.HitTestCode) Then
+                HookProc = 1
+                Exit Function
+            End If
+        End If
+    End If
+    HookProc = CallNextHookEx(mHook, nCode, wParam, lParam)
+End Function
+

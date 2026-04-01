@@ -1,0 +1,347 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>OpenCV関係２(クラスライブラリ)</b></h1>
+
+<hr>
+
+<p>私がVB(VB2005)からOpenCVを使うときに使っているクラスライブラリを公開します。<br>
+<br>
+<b><font color="#FF0000">このクラスライブラリは更新する予定がありません。<br>
+OpenCV1.1を使用したい場合は、新しいタイプのライブラリを使ってください。<br>
+新しいライブラリはOpenCV関係のメニューからOpenCV関係3のページでダウンロードできます。</font></b>
+</p>
+
+<p><b><font color="#FF0000"><a href="../opencvmenu.html">こちら</a>からどうぞ。</font></b>
+</p>
+
+<hr>
+
+
+
+<h2>◎概要
+</h2>
+
+
+
+<p>OpenCVのDLLを使うための各種APIや構造体、定数を定義したモジュールと、<br>
+VBから使う上で便利な関数郡を定義したモジュールで構成されます。<br>
+<br>
+<b>定義モジュール<br>
+(Cv,CxCore,CvType,CxType)<br>
+</b>
+<br>
+　・本クラスライブラリはOpenCVをVB(VB2005)から使うためのものですから、<br>
+　　当然OpenCVがインストールされている必要があります。<br>
+<br>
+　・DLLの関数等は基本的にC用の関数名と同じ名前で定義しています。<br>
+<br>
+　・マクロやインライン関数で定義されている関数等は、<br>
+　　同等の機能を提供するVB製関数に置き換えられています。<br>
+　　できるだけ同じ結果になる様に速度よりも互換性を大事にしています。<br>
+<br>
+　・関数の別名登録（マクロにて名前が変えられているだけのような定義）は<br>
+　　一部のみしかサポートされていません。<br>
+<br>
+　・API定義はOpenCVのソースファイル(ヘッダファイル)から<br>
+　　機械的に変換して作ってあります。<br>
+　　（意味のない定義になってるのもありますが、気にしてはいけません）<br>
+<br>
+　・構造体のポインタなどは構造体とIntPtrの両方、<br>
+　　文字列はString/バイト配列/IntPtr、など複数の型で定義してあります。<br>
+　　これはNULL(IntPtr.Zero)を指定できるようにするためです。<br>
+　　<br>
+　・定義については、間違いもあるでしょう(^^;<br>
+<br>
+<br>
+<b>ユーティリティモジュール
+<br>
+(CvUtility)</b><br>
+<br>
+　・OpenCVLibで定義されているAPIを使うときに便利な関数やラッパーなどを提供します。<br>
+<br>
+　・基本的にこのモジュールを使わなくともなくともOpenCVは使えますが、<br>
+　　アンマネージとマネージの橋渡し処理を毎回書いてると面倒です。（＾＾；<br>
+<br>
+</p>
+
+
+
+<hr>
+
+
+
+<h2>◎ダウンロード／インストール
+</h2>
+
+
+
+<table border="1" width="801" height="152">
+  <tr>
+    <td width="194" align="center" height="16">リリース</td>
+    <td width="194" align="center" height="16">ライブラリ</td>
+    <td width="216" align="center" height="16">ソース</td>
+    <td width="477" align="center" height="16">備考</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2007/01/13</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20070113.lzh">OpenCVLib20070113.lzh</a></td>
+    <td width="216" height="16">←ソース含む</td>
+    <td width="477" height="16">テスト版</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2007/04/17</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20070417.zip">OpenCVLib20070417.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib20070417SRC.zip">OpenCVLib20070417SRC.zip</a></td>
+    <td width="477" height="16">テスト版を全面改定</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2007/04/20</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20070420.zip">OpenCVLib20070420.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib20070420SRC.zip">OpenCVLib20070420SRC.zip</a></td>
+    <td width="477" height="16">cvCreateVideoWriterのサンプル追加</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2008/04/08</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20080117.zip">OpenCVLib20080117.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib20080117SRC.zip">OpenCVLib20080117SRC.zip</a></td>
+    <td width="477" height="16">CvCam関係を追加</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2008/07/29</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20080729.zip">OpenCVLib20080729.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib20080729SRC.zip">OpenCVLib20080729SRC.zip</a></td>
+    <td width="477" height="16">CvCam関係を追加</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2008/08/19</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib20080819.zip">OpenCVLib20080819.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib20080819SRC.zip">OpenCVLib20080819SRC.zip</a></td>
+    <td width="477" height="16">cvSobel関連のサンプル追加</td>
+  </tr>
+  <tr>
+    <td width="1081" height="14" colspan="4">
+    <b><font color="#FF0000">　以後更新予定なし<br>
+    　新しいタイプのライブラリを利用して下さい。<a href="../opencvmenu.html">こちら</a>からどうぞ。</font></b>
+    </td>
+  </tr>
+</table>
+
+<p>使用するだけならライブラリ版を適当なフォルダに展開し、<br>
+VB2005/VB2008からDLLを参照設定して下さい。<br>
+<br>
+ソース版にはライブラリとサンプルプログラム、及び、<br>
+OpenCVのヘッダファイルからVB2008用の定義ソースを自動的に作り出すツールの<br>
+全ソースが含まれています。<br>
+（OpenCVのバージョンがあがった時、楽に対応できるようにするため自動生成するようにしています）<br>
+<br>
+ライセンス的には、OpenCVのライセンスに従います。<br>
+(GPLではないので使用してもソース公開の義務はないと思います。気になる方は自分で調べてください。)<br>
+</p>
+
+
+
+<hr>
+
+
+
+<h2>◎使用方法（参照設定）
+</h2>
+
+
+
+<p>OpenCVを使用したいプロジェクトにて「<b>OpenCVLib.dll</b>」を参照設定して下さい。<br>
+OpenCVLibクラスライブラリが使えるようになります。<br>
+<br>
+使うにはモジュールの先頭で、<br>
+　Imports OpenCVLib<br>          
+とすると便利でしょう。<br>       
+<br>       
+具体的な使い方についてはサンプルプログラムを参考にして下さい。<br>      
+<br>      
+関数の引数等は基本的にC言語からの使い方と同じですが、<br>      
+アンマネージ領域とのやり取りに若干注意が必要です。      
+</p>      
+      
+      
+      
+<hr>      
+      
+      
+      
+<h2>◎サンプル１    
+</h2>    
+    
+    
+    
+<p>    
+OpenCVLibクラスライブラリを使ったサンプルを紹介します。<br>    
+このサンプルのソースはソースアーカイブに含まれています。<br>    
+各サンプルの操作方法や詳細はソースファイルを見て下さい。<br>    
+できるだけコメントを書いてますんで(^^;<br>    
+</p>     
+     
+     
+     
+<h3>Camera</h3>    
+<h3><img border="0" src="index.24.jpg"></h3>    
+<p>　カメラから画像を取り込み、ウィンドウに表示するサンプルです。<br>
+　このサンプルではVBのフォーム機能を使用していません。コンソールアプリとなっています。<br>
+　よくあるOpenCVのサンプルをVB2005で作ったものです。<br>
+　終了させる時はESCキーを押して下さい。</p>
+<p>　</p>
+<h3>Camera2</h3>
+<p><img border="0" src="index.25.jpg"></p>
+<p>　カメラから画像を取り込み、<br>
+　元画像と簡単な画像処理を行った映像をフォーム内に並べて表示します。<br>
+　サンプル「Camera」と違いGUIに積極的にVBの機能を使ってます。</p>
+<p>　</p>
+<h3>Camera3</h3>
+<p><img border="0" src="index.26.jpg"></p>
+<p>　カメラから画像を取り込み、ウィンドウに表示するサンプルです。<br>
+　高像的にはサンプル「Camera」とほぼ同じですが、<br>
+　キャプチャ部分にOpenCVの機能ではなくDirectShow(DShowLib)を使ってます。<br>
+　OpenCVのカメラキャプチャ機能では、キャプチャ条件(サイズ等)を指定できませんが、<br>
+　DirectShowを直接使う事によりサイズ指定などが可能になります。</p>
+<p>　</p>
+<h3>LoadImage</h3>
+<p><img border="0" src="index.27.jpg"></p>
+<p>　画像ファイルを読み込み、ウィンドウに表示するサンプルです。<br>
+　OpenCVに付属する画像ファイルを表示させます。<br>
+　インストールフォルダの取得などにユーティリティモジュールを使用しています。</p>
+<p>　</p>
+<h3>ColorSpace</h3>
+<p><img border="0" src="index.28.jpg"></p>
+<p>　静止画ファイルを読み込み、RGB/HSV/HLSの各プレーンを表示するサンプルです。<br>
+　インストールフォルダの取得などにユーティリティモジュールを使用しています。</p>
+<p>　</p>
+<h3>PictureBox</h3>
+<p><img border="0" src="index.29.jpg"></p>
+<p>　静止画ファイルを読み込み、PictureBox内に表示するサンプルです。<br>
+　OpenCVのイメージデータ(IplImage)からビットマップを作成します。</p>
+<p>　</p>
+<h3>DirectAccess</h3>
+<p><img border="0" src="index.30.jpg"></p>
+<p>サンプルCameraに画像処理を追加したサンプルです。<br>
+イメージデータを配列に読み込みんで処理することにより、<br>
+VBでのPixel単位の操作よりもずっと高速に処理できます。</p>
+<p>　</p>
+<h3>Video</h3>
+<p><img border="0" src="index.31.jpg"></p>
+<p>カメラから映像を取り込み、AVIファイルに出力します。<br>
+AVIファイルは実行ファイルと同じフォルダに出力されます。<br>
+エンコード方式を指定していないので、起動時に上のダイアログでエンコード方式を選択します。<br>
+</p>
+ 
+ 
+ 
+<h3>ImageProcessing
+</h3>
+<p><img border="0" src="index.1.jpg" width="826" height="365">
+</p>
+<p>cvSobel、cvLaplace、cvCannyでのイメージ処理のサンプルです。<br>
+</p>
+<p>　
+</p>
+ 
+ 
+ 
+<hr> 
+ 
+ 
+ 
+<h2>◎サンプル２
+</h2>
+
+
+
+<p>こちらもOpenCVLibクラスライブラリを使ったサンプルですが、<br>
+OpenCV付属の同名サンプルを移植したものです。<br>
+元のサンプルコードと比較しやすいように、コメントも含め極力追加・変更していません。<br>
+また機能はほとんど同じですが、コマンドライン引数関係は多少省いたり変更したものがあります。<br>
+</p> 
+ 
+ 
+ 
+<h3>contours</h3>
+<h3><img border="0" src="index.32.jpg"><img border="0" src="index.33.jpg"></h3>
+<p>　画面に複数の顔を描いて、cvFindContoursにて輪郭線を抽出するサンプルです。<br>
+　トラックバーの値取得部分が元のサンプルコードと若干異なります。<br>
+　ユーザがトラックバーを動かした場合、<br>
+　トラックバー生成時に指定したアドレスに現在の値が自動的に格納(更新)されますが、<br>
+　アンマネージ領域になるためVBからだと煩雑になります。<br>
+　そのためコールバック関数(on_trackbar)の引数の値を使うようにしています。</p>
+<p>　</p>
+<h3>edge</h3>
+<p><img border="0" src="index.34.jpg"></p>
+<p>　静止画ファイルを読み込み、cvCannyにて縁(輪郭)を抽出するサンプルです。<br>
+　contours同様トラックバー関連を変更しています。<br>
+　また引数なしの場合、元ソースではカレントフォルダにあるファイル(fruits.jpg)を<br>
+　表示しますが、VBからの動作を考慮し、<br>
+　OpenCVインストールフォルダ下の\samples\c\fruits.jpgを表示するようにしています。</p>
+<p>　</p>
+<h3>laplace</h3>
+<p><img border="0" src="index.35.jpg"></p>
+<p>　カメラ又は動画ファイルの映像をcvLaplaceによる<br>
+　ラプラシアンフィルタにかけて表示するサンプルです。<br>
+　コマンドライン引数の処理が若干異なりますが、<br>
+　ほぼ元のサンプルコードをVB構文に直しただけで動作したサンプルです。</p>
+<p>　</p>
+<h3>facedetect</h3>
+<p><img border="0" src="index.36.jpg"></p>
+<p>　カメラ又は動画ファイルの映像から「顔」を検索するサンプルです。<br>
+　（上のサンプル画像は、TVをカメラで撮った映像です。<br>
+　　なんかのCMだと思うんですが、学術目的ということで著作権関係はお見逃しを・・・^^;;）<br>
+　認識に使用する顔の定義ファイルはOpenCV付属のデータを使用します。<br>
+　ソース内のコメントにも書いてますが、<br>
+　定義ファイル(xml)をcvLoadで読み込む場合に注意が必要です。<br>
+　サンプルコードをそのまま移植するとcvLoadでエラーが発生します。<br>
+　原因及び対策は、、、コメントを見て下さい(^^;<br>
+</p>
+<h3>motempl</h3>
+<p><img border="0" src="index.37.jpg"></p>
+<p>　カメラ又は動画ファイルの映像から「動きのある部分」を検索するサンプルです。<br>
+　見た目がちょっとかっこいいので移植してみただけです。<br>
+</p>
+ 
+ 
+ 
+<hr> 
+ 
+<p><a href="../index.html">上に戻る</a></p> 
+</body> 
+ 
+ 
+ 
+</html> 
+ 

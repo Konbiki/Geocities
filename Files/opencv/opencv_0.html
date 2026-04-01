@@ -1,0 +1,77 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<h1><b>OpenCV関係(VB2005)</b></h1>
+
+<hr>
+
+<h2><b>0．OpenCVの準備</b></h2>
+
+<p><strike>まず下記URLより「OpenCV_1.0rc1.exe」をダウンロードして下さい。<br>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=22870">http://sourceforge.net/project/showfiles.php?group_id=22870</a><br>
+<br>
+なおこのバージョンは<b>RC版</b>です。（正式リリース候補ってやつで、正式なVer1.00ではないです。）<br>
+正式バージョンが出たら別途対応したいと思います。</strike><br>
+<br>
+ついにOpenCVのバージョンが1.00になりました（＾＾<br>
+ということで、下記より「<b>OpenCV_1.0.exe</b>」をダウンロードして下さい。(opencv-winってやつです）<br>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=22870">http://sourceforge.net/project/showfiles.php?group_id=22870</a><br>
+<br>
+あとはこれを実行すればインストールされます。<br>
+インストール先等の入力などがありますが、適当に入力して下さい。<br>
+<br>
+インストールするとメニューに[OpenCV]のグループが追加されます。<br>
+その中にある[Samples]というフォルダ内にサンプルがありますのでそれを実行してみれば動作を確認できます。<br>
+exeかcmdのファイルをダブルクリック等で実行して下さい。<br>
+<br>
+お勧めは、<b>facedetect.cmd</b>と<b>lkdemo.exe</b>です。<br>
+「facedetect.cmd」(exeじゃなくてcmdの方を実行すること)はその名の通り、カメラ画像から「顔」を見つけるサンプルです。<br>
+「lkdemo.exe」はオプティカルフロー等のデモです。<br>
+実行するとカメラ画像が表示されるので適当な物をクリックしてみて下さい。（緑の点が付きます）<br>
+その後その物を動かしてみてください。緑の点が追尾します。<br>
+<br>
+もしDLLが見つからない等のエラーダイアログが表示された場合は<br>
+<b><i>[</i></b><i><b>システムのプロパティ]-[詳細タブ]-[環境変数]-[ユーザ環境変数]</b></i>のPATHに<br>
+インストール先のbinフォルダのパスを追加してみて下さい。<br>
+インストール先が C:\Program Files\OpenCV ならば、<br>  
+現在のPATHの後ろに　<b>;C:\Program Files\OpenCV\bin</b> を追加します。(パスは「；」セミコロンで区切ります)<br> 
+<br>
+以後のサンプルプログラム等は、上記の<b><font color="#0000FF">付属サンプルが動作する環境で実行させることを想定</font></b>しています。<br>
+（要は付属サンプルが動作しないと、ここのプログラムも動作しないってことです。）<br>
+<br>
+なお、OpenCVはバージョン毎にDLLの名称が異なっています。<br>
+このページではVer1.00をターゲットにしていますので、他のバージョンでは動作しないと思われます。<br>
+他のバージョンを使う場合は注意して下さい。（DLLファイル名は簡単に変更できる様にしています）</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

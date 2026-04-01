@@ -1,0 +1,1121 @@
+<html>
+
+
+
+<head>
+
+<meta http-equiv="Content-Language" content="ja">
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>VBでマウスジェスチャ</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<p><b>VBでマウスジェスチャ（フック）</b></p>
+
+<hr>
+
+<p>最近Operaというブラウザを使ってるんですが、<br>
+
+これの「マウスジェスチャ」機能ってのがなかなかいいもので、<br>
+
+慣れると他のアプリにも欲しくなる機能です。（っていうか間違ってマウスをまわしちまうｗ）<br>
+
+<br>
+
+ということで、VBでやってみました（＾＾；</p>
+
+<hr>
+
+<p>マウスジェスチャを行うには、マウスの動きを検出する必要があります。<br>
+
+マウスの位置（X,Y)がどういう風に変化したかをみて判断するわけです。<br>
+
+<br>
+
+VBではマウスの動きをMouseMoveイベントなどで取得することができますが、<br>
+
+右ボタンを押した位置のコントロールでイベントが発生するだけです。<br>
+
+色々なコントロールを配置したフォーム内では、<br>
+
+それぞれのイベントプロシジャにコードを書くのは現実的でないですし、<br>
+
+クラスとか使ってまとめて処理しても複雑になるだけです。<br>
+
+キー入力ならばKeyPreview=Trueにすればフォームで一括処理できるのですが、<br>
+
+マウスの場合はそれができないのも残念です。<br>
+
+<br>
+
+そこでフック（Hook)というテクニックを使うことにします。<br>
+
+SetWindowsHookEx(ほか数点)というAPIを使って、<br>
+
+フォームにフックプロシジャを登録しそこでマウスの動きを取得します。</p>
+
+
+
+<hr>
+
+<p>フックの仕組み</p>
+
+
+
+<p>簡単にフックの仕組みを説明します。</p>
+
+
+
+<p>まずWindowsというOSは「メッセージ」というものをやり取りして<br>
+
+マウスの動きやキー入力などをOSからアプリケーションに伝えています。<br>
+
+またテキストボックスやリストボックスといったシステムが用意しているコントロール<br>
+
+（特殊なウィンドウ）のスタイルを変更するにも、<br>
+
+そのウィンドウに対してメッセージを送ることにより行います。<br>
+
+<br>
+
+かなり端折った説明になりますが、<br>
+
+マウスなどのドライバがマウスの動きを感知すると、<br>
+
+それをOSが用意したAPIでOSに伝え、<br>
+
+OSがマウスカーソルなどを移動させた後、<br>
+
+アプリケーションにメッセージとして送ると思えばいいでしょう。</p>
+
+
+
+<p>ウィンドウには「ウィンドウプロシジャ」というモジュール（関数）が必要です。<br>
+
+このウィンドウプロシジャがメッセージを受け取るわけです。<br>
+
+VBではランタイムの中にウィンドウプロシジャがあり、<br>
+
+イベントとしてユーザプログラムに伝えられます。</p>
+
+
+
+<div align="justify">
+
+  <table border="0" cellspacing="1">
+
+    <tr>
+
+      <td  bgcolor="#FFFFFF" style="border-style: solid; border-width: 2">
+
+        <p align="center">OS</td>
+
+      <td>
+
+        <p align="center">→<br>
+
+        （メッセージ）</td>
+
+      <td  style="border-style: solid; border-width: 2" bgcolor="#FFFFFF">
+
+        <p align="center">VBのランタイム<br>
+
+        （ウィンドウプロシジャ）</td>
+
+      <td>
+
+        <p align="center">→<br>
+
+        （イベント）</td>
+
+      <td  style="border-style: solid; border-width: 2" bgcolor="#FFFFFF">
+
+        <p align="center">ユーザコード</td>
+
+    </tr>
+
+  </table>
+
+</div>
+
+
+
+<p>このときすべてのメッセージに対するイベントが用意されているわけではありません。<br>
+
+このためにVBでは出来ないことが出てくるわけです。</p>
+
+
+
+<p>で、フックをかけるとどうなるかというと、</p>
+
+
+
+<div align="justify">
+
+  <table border="0" cellspacing="1">
+
+    <tr>
+
+      <td  bgcolor="#FFFFFF" style="border-style: solid; border-width: 2">
+
+        <p align="center">OS</td>
+
+      <td>
+
+        <p align="center">→<br>
+
+        （メッセージ）</td>
+
+      <td  style="border-style: solid; border-width: 2" bgcolor="#FFFFCC">
+
+        <p align="center">ユーザコード<br>
+
+        （フックプロシジャ）</td>
+
+      <td>
+
+        <p align="center">→<br>
+
+        （メッセージ）</td>
+
+      <td  style="border-style: solid; border-width: 2" bgcolor="#FFFFFF">
+
+        <p align="center">VBのランタイム<br>
+
+        （ウィンドウプロシジャ）</td>
+
+      <td>
+
+        <p align="center">→<br>
+
+        （イベント）</td>
+
+      <td  style="border-style: solid; border-width: 2" bgcolor="#FFFFFF">
+
+        <p align="center">ユーザコード</td>
+
+    </tr>
+
+  </table>
+
+</div>
+
+
+
+<p align="left">OSとウィンドウプロシジャの間にユーザコードのフックプロシジャを割り込ませることができます。<br>
+
+これにより、ウィンドウプロシジャがOSからのメッセージを受け取る前に<br>
+
+自前のフックプロシジャがメッセージを受け取って、<br>
+
+VBでは不可能なアクションをとることが出来るわけです。<br>
+
+またVBのランタイムに渡すメッセージを変更してしまうことも可能です。</p>
+
+<p align="left">（実際にはデフォルトのメッセージ処理のプロシジャに飛んでたりもしますが、無視してます）</p>
+
+<hr>
+
+<p align="left">実際の使い方はこちらの<a href="MouseGesture.lzh">サンプル</a>をもとに説明したいと思います。</p>
+
+<p align="left">このサンプルを起動すると以下のような画面がでます。</p>
+
+<p align="left"><img border="0" src="sample.jpg" width="627" height="243"></p>
+
+<p align="left">「<b>マウスジェスチャを有効にする</b>」というチェックボックスをチェックするとマウスジェスチャ機能が有効になります。<br>
+
+マウスの右ボタンを押しながら上下左右に動かしてみましょう。<br>
+
+「<b>最新の動き</b>」「<b>入力されたコマンド</b>」のところに、動きにあわせた矢印がでます。<br>
+
+右ボタンを離すと「<b>コマンド履歴</b>」に登録されます。<br>
+
+ウィンドウの何も無いところだけでなく、テキストボックス上でも入力が可能です。<br>
+
+また、マウスの動きが小さい場合は反応しないようになってます。</p>
+
+<p align="left">　</p>
+
+<p align="left">サンプルは以下の構成になってます。</p>
+
+<table border="1" width="96%">
+
+  <tr>
+
+    <td width="29%">名称</td>
+
+    <td width="55%">ファイル名</td>
+
+    <td width="87%">内容</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="29%">Form1</td>
+
+    <td width="55%"><a href="Form1.txt">Form1.frm</a></td>
+
+    <td width="87%">サンプルフォーム</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="29%">mMouseHook</td>
+
+    <td width="55%"><a href="mMouseHook.txt">mMouseHook.bas</a></td>
+
+    <td width="87%">フック用モジュール</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="29%">cMouseHookEvent</td>
+
+    <td width="55%"><a href="cMouseHookEvent.txt">cMouseHookEvent.cls</a></td>
+
+    <td width="87%">イベント生成用クラス</td>
+
+  </tr>
+
+</table>
+
+<p>　</p>
+
+<p>動作に沿って説明していきます。</p>
+
+<p>まずサンプルプロジェクトのスタートアップがForm1になっているので<br>
+
+起動時にForm1がロードされます。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'マウスジェスチャのイベントを受け取るためのイベントハンドラ
+
+Private WithEvents mMouseEvent As cMouseHookEvent
+
+
+
+'フォームロード時
+
+Private Sub Form_Load()
+
+    
+
+End Sub</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>モジュールセクションに<font color="#FF00FF"><b>cMouseHookEvent</b></font>クラスの変数を<font color="#FF00FF"><b>WithEvents</b></font>を指定して定義しています。<br>
+
+cMouseHookEventクラスはフックには関係なく、<br>
+
+フックプロシジャでキャッチしたメッセージを元にマウスの動きを検知し、<br>
+
+イベントを起こさせるための物です。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'マウスジェスチャのＯＮ／ＯＦＦ
+
+Private Sub chk_Enable_Click()
+
+    
+
+    If chk_Enable.Value Then
+
+        'ＯＮ
+
+        <font color="#FF00FF">Set mMouseEvent = SetHook(Me.hwnd)</font>
+
+    Else
+
+        'ＯＦＦ
+
+        ResetHook
+
+        Set mMouseEvent = Nothing
+
+    End If
+
+    
+
+End Sub</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>「<b>マウスジェスチャを有効にする</b>」のチェックボックスをクリックイベントプロシジャです。<br>
+
+ここで上で定義したmMouseEventにcMouseHookEventクラスのインスタンスを入れています。<br>
+
+cMouseHookEventクラスのインスタンスを作っているのはmMouseHookモジュール内の<br>
+
+<font color="#FF00FF"><b>SetHook()</b></font>関数です。
+
+</p>
+
+
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'////////////////////////////////////////////////////////////
+
+'フック開始
+
+Public Function SetHook(ByVal hwnd As Long) As cMouseHookEvent
+
+    
+
+    '前回のフックが残っていれば解放
+
+    ResetHook
+
+    
+
+    'インスタンスハンドルとスレッドIDの取得
+
+    Dim hInst&amp;, tid&amp;
+
+    hInst = GetWindowLong(hwnd, GWL_HINSTANCE)
+
+    If hInst = 0 Then Exit Function
+
+    tid = GetCurrentThreadId()
+
+    
+
+    'フック
+
+    mHook = SetWindowsHookEx(WH_MOUSE, AddressOf HookProc, hInst, tid)
+
+    
+
+    'イベントハンドラの準備
+
+    Set mHookEvent = New cMouseHookEvent
+
+    Set SetHook = mHookEvent
+
+    
+
+    Debug.Print &quot;Start hook : &quot; + Hex$(mHook)
+
+    
+
+End Function</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>SetHook()関数ではフックをかけて、<br>
+
+イベントを起こさせるためのcMouseHookEventインスタンスを作成し返します。<br>
+
+cMouseHookEventインスタンスはフックプロシジャから呼び出すので<br>
+
+モジュールセクションで定義した変数に保存しておきます。<br>
+
+<br>
+
+フックプロシジャを登録するAPI（）は<font color="#FF00FF"><b>SetWindowsHookEx</b></font>()です。<br>
+
+これの引数は、<br>
+
+　　フックの種類<br>
+
+　　フックプロシジャのアドレス<br>
+
+　　フックプロシジャのインスタンスハンドル<br>
+
+　　フックをかけるスレッドのID<br>
+
+になります。<br>
+
+<br>
+
+フックの種類は以下のようなものがあります。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="7%" align="center">定数</td>
+
+    <td width="59%">フックの内容</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_MOUSE</td>
+
+    <td width="59%">マウス関係のメッセージをフックします。</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_KEYBOARD</td>
+
+    <td width="59%">キーボード関係のメッセージをフックします。</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_CBT</td>
+
+    <td width="59%">ComputerBasedTrainingに有効なメッセージをフックします。<br>
+
+      ウィンドウが表示される時、アクティブになった時、ウィンドウが閉じられたときなどを検知できます。</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_CALLWNDPROC</td>
+
+    <td width="59%">ウィンドウプロシジャに送られるメッセージをフックします。</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_GETMESSAGE</td>
+
+    <td width="59%">PostMessage()APIでウィンドウプロシジャに送られたメッセージをフックします。</td>
+
+  </tr>
+
+  <tr>
+
+    <td width="7%" align="center">WH_MSGFILTER&nbsp;</td>
+
+    <td width="59%">ダイアログ ボックス､ メッセージ ボックス､ メニュー､  
+
+      スクロールバーを<br>
+
+      操作したときに生成されるメッセージをフックします。</td>
+
+  </tr>
+
+</table>
+
+<p>他にジャーナル関係、シェル関係などがあります。（詳しくはヘルプを参照してください）<br>
+
+今回はマウスだけなのでWH_MOUSEを使います。<br>
+
+<br>
+
+フックプロシジャのアドレスはAddressOf演算子でフックプロシジャを指定すれば取得できます。<br>
+
+ただしAddressOf演算子で取得できる関数のアドレスは<br>
+
+標準モジュールにある必要があります。<br>
+
+このために標準モジュールが必須となります。</p>
+
+<p>フックプロシジャのインスタンスハンドルと、フックをかけるスレッドのIDは<br>
+
+フォームのウィンドウハンドル（ｈWndプロパティ）から<br>
+
+GetWindowLong()、GetCurrentThreadId()のAPIを使えば取得できます。<br>
+
+<br>
+
+SetWindowsHookEx()APIの戻り値はフックハンドルになります。<br>
+
+これはフックを解除するときに必要になるので保存しておきます。<br>
+
+<br>
+
+登録されるフックプロシジャは下記になります。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'////////////////////////////////////////////////////////////
+
+'フックプロシジャ
+
+Private Function HookProc(ByVal nCode As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+
+    
+
+    If nCode = HC_ACTION Then
+
+        If Not mHookEvent Is Nothing Then
+
+            Dim mm As tMouseHookStruct
+
+            CopyMemory mm.Point.x, ByVal lParam, LenB(mm)
+
+            
+
+            If mHookEvent.FireGetMessage(wParam, mm.Point.x, mm.Point.y, mm.hwnd, mm.HitTestCode) Then
+
+                HookProc = 1
+
+                Exit Function
+
+            End If
+
+        End If
+
+    End If
+
+    HookProc = CallNextHookEx(mHook, nCode, wParam, lParam)
+
+End Function</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>引数のnCodeにはHC_ACTION(0)又はHC_NOREMOVE(3)がセットされます。<br>
+
+マウスの動きを見るときはHC_ACTIONの時だけで十分です。<br>
+
+<br>
+
+実際どんなメッセージが送られてきたかは、第2引数のwParamに入っています。<br>
+
+またマウスの位置や送られるべきウィンドウのハンドルなどは<br>
+
+第3引数のlParamが示すアドレス（MOUSEHOOKSTRUCT構造体のアドレス）に入っています。<br>
+
+VBでは直接メモリを参照できないので、<br>
+
+下記のように定義した構造体にコピーして参照します。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>Public Type tPoint
+
+    x As Long
+
+    y As Long
+
+End Type
+
+
+
+Public Type tMouseHookStruct
+
+    Point As tPoint
+
+    hwnd As Long
+
+    HitTestCode As Long
+
+    ExtraInfo As Long
+
+End Type</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>Pointにマウスの位置、ｈWndにウィンドウハンドルなどが入ってます。</p>
+
+<p>例えばマウスを動かした場合、<br>
+
+wParamにWM_MOUSEMOVE(&amp;H200)、<br>
+
+tMouseHookStructのPointにその座標(スクリーン座標)が入っていることになります。</p>
+
+<p>最後のCallNextHookEx()APIは次のフックプロシジャを呼び出します。<br>
+
+フックプロシジャは多重に登録できます。<br>
+
+後で登録されたプロシジャがシステムから呼び出されますが、<br>
+
+そこで終わりにしないで前の（次の）フックプロシジャを呼び出してあげないと<br>
+
+前に登録されたフックプロシジャがなにも出来なくなる訳です。<br>
+
+ただ絶対呼び出さなければならない訳ではありません。<br>
+
+フックプロシジャで捕まえたメッセージは<br>
+
+イベント生成用のクラスインスタンスmHookEventのFireGetMessageに引き渡して<br>
+
+そこで動きの検知などをしていますが、<br>
+
+そこでメッセージを破棄すべき時などは戻り値に1をセットして<br>
+
+次のフックプロシジャを呼び出さないで帰ります。<br>
+
+<br>
+
+CallNextHookExを呼び出さなければ、前に登録したフックプロシジャを無効にすることもできますが、<br>
+
+あまり行儀のよいプログラムとはいえないです。<br>
+
+（常駐してフックを行うプログラムなどで、他の同様の常駐プログラムと相性が悪いなんてのは<br>
+
+　この辺が影響していることが多いです。）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'////////////////////////////////////////////////////////////
+
+'フックプロシジャからの呼び出し
+
+Public Function FireGetMessage(ByVal MsgID As Long, ByVal x As Long, ByVal y As Long, ByVal hwnd As Long, ByVal HitTestCode As Long) As Boolean
+
+    FireGetMessage = True
+
+    
+
+    Dim Cancel As Boolean
+
+    Cancel = False
+
+    RaiseEvent <font color="#FF00FF">OnGetMessage</font>(MsgID, x, y, hwnd, HitTestCode, Cancel)
+
+    If Cancel Then
+
+        Exit Function
+
+    End If
+
+    
+
+    If <font color="#FF00FF">CheckAction</font>(MsgID, x, y) Then
+
+        Exit Function
+
+    End If
+
+    
+
+    FireGetMessage = False
+
+End Function
+
+
+
+'動作の検出
+
+Private Function <font color="#FF00FF">CheckAction</font>(ByVal MsgID As Long, ByVal x As Long, ByVal y As Long) As Boolean
+
+    CheckAction = False
+
+    
+
+    Dim dx&amp;, dy&amp;, dd&amp;
+
+    Dim sx&amp;, sy&amp;
+
+    
+
+    Select Case MsgID
+
+        Case &amp;H200  'MOUSEMOVE
+
+<font color="#0000FF">            If mNowAction Then
+
+                dx = x - mLastPosX
+
+                dy = y - mLastPosY
+
+                sx = Sgn(dx)
+
+                sy = Sgn(dy)
+
+                If Sqr(dx * dx + dy * dy) &gt; mMinMove Then
+
+                    dx = Abs(dx)
+
+                    dy = Abs(dy)
+
+                    If dx &gt; dy / 3 Then
+
+                        sy = 0
+
+                    End If
+
+                    If dy &gt; dx / 3 Then
+
+                        sx = 0
+
+                    End If
+
+                    
+
+                    AddAction sx, sy
+
+                    mLastPosX = x
+
+                    mLastPosY = y
+
+                End If
+
+                
+
+                CheckAction = True
+
+            End If</font>
+
+        
+
+        Case &amp;H204  'RIGHTDOWN
+
+<font color="#008000">            If mMessageSkip Then
+
+            Else
+
+                mNowAction = True
+
+                mLastPosX = x
+
+                mLastPosY = y
+
+                mStartPosX = x
+
+                mStartPosY = y
+
+                mActionIndex = 0
+
+                CheckAction = True
+
+            End If</font>
+
+        
+
+        Case &amp;H205  'RIGHTUP
+
+<font color="#808000">            If mMessageSkip Then
+
+                mMessageSkip = False
+
+            Else
+
+                mEndPosX = x
+
+                mEndPosY = y
+
+                mNowAction = False
+
+                If mActionIndex Then
+
+                    RaiseEvent OnActionEnd(mActionIndex)
+
+                Else
+
+                    'アクションなし
+
+                    mMessageSkip = True
+
+                    mouse_event MOUSEEVENTF_ABSOLUTE Or MOUSEEVENTF_RIGHTDOWN, mStartPosX, mStartPosY, 0, 0
+
+                    mouse_event MOUSEEVENTF_ABSOLUTE Or MOUSEEVENTF_RIGHTUP, mEndPosX, mEndPosY, 0, 0
+
+                End If
+
+            End If</font>
+
+            
+
+    End Select
+
+    
+
+End Function</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>いきなり長いですが、上がフックプロシジャからメッセージを受け取って<br>
+
+マウスの動きを検知している所です。<br>
+
+<br>
+
+フックプロシジャから直接呼び出されるFireGetMessageは<br>
+
+<font color="#FF00FF">OnGetMessage</font>イベントを発生させてますが、サンプルでは使ってません。<br>
+
+<br>
+
+マウスジェスチャの開始は右ボタンが押下されたときから始まります。<br>
+
+右ボタンが押下されたときはMsgIDが&amp;H204(WM_RBUTTONDOWN)になります(<font color="#008000">緑の部分</font>)。<br>
+
+移動量を測るためのメンバ変数にクリックされたときの位置を保存し<br>
+
+ジェスチャ中であることを示す変数（mNowAction）をセットしています。<br>
+
+そしてそのメッセージは無視させるように戻り値をTrueにします。<br>
+
+これによりこのメッセージはVBに渡りません。（MouseDownイベントが発生しない）<br>
+
+またmMessageSkipがTrueの時は処理しません。（後述）<br>
+
+<br>
+
+<br>
+
+マウスが動かされたときはMsgIDが&amp;H200(WM_MOUSEMOVE)になります(<font color="#0000FF">青の部分</font>)。<br>
+
+ジェスチャ中(mNowAction=TRUE)であるときだけ動きの検知を行います。<br>
+
+実は動きの検知は結構いい加減です（^^;<br>
+
+<br>
+
+（１）<br>
+
+移動距離(左右、前後の増減分の二乗を加えた値の平方根)が<br>
+
+最低移動距離mMinMoveより大きいかを調べ、<br>
+
+最低移動距離以下の場合は無視します。<br>
+
+<br>
+
+（２）<br>
+
+横の移動量が縦の移動量の３倍よりも大きい場合、縦の移動量は０とします。<br>
+
+縦の移動量が横の移動量の３倍よりも大きい場合、横の移動量は０とします。<br>
+
+これにより斜めの移動は移動量０となります。（大概ね）<br>
+
+<br>
+
+（３）<br>
+
+縦、横の移動量から方向を求めます。<br>
+
+縦、横の移動量とも０（＝斜めの時）ならば無視します。<br>
+
+<br>
+
+検知はこれだけです。<br>
+
+動きがあると判断されたときはAddAction関数内でアクションバッファに登録し、<br>
+
+OnActionStart／OnActionMoveイベントを発生させます。<br>
+
+<br>
+
+<br>
+
+マウスの右ボタンが離されたときはMsgIDが&amp;H205(WM_RBUTTONUP)になります(<font color="#808000">黄色の部分</font>)。<br>
+
+ここでもmMessageSkip=Trueの時はmMessageSkipをクリアするだけです。<br>
+
+アクションバッファにデータがあれば(mActionIndex&gt;0の時)、<br>
+
+なんらかの動きがあったのでOnActionEndイベントを発生させます。<br>
+
+バッファにデータがない場合、アクションがなかったので<br>
+
+通常の右クリック処理を起こさせます。<br>
+
+右クリック処理はmouse_event()APIで右ボタン押す→右ボタン離すをさせることで実現してます。<br>
+
+このとき自分自身にLBUTTONDOWN／LBUTTONUPがまた発生してしまいます。<br>
+
+そのメッセージは無視するようにmMessageSkipをTrueにします。<br>
+
+<br>
+
+<br>
+
+動きがなかったときに右クリックを起こさせるのは<br>
+
+テキストボックスなどで右クリックメニューを通常と同じように起こさせる為です。<br>
+
+これをやらないとフック中はテキストボックスでポップアップメニュがでなくなってしまいます。</p>
+
+<p><br>
+
+以上でcMouseHookEventのインスタンスmMouseEventをWithEventsで宣言したForm1内で<br>
+
+mMouseEvent_OnActionStart：最初のアクションの時<br>
+
+mMouseEvent_OnActionMove：新しい動きがあった時<br>
+
+mMouseEvent_OnActionEnd：アクションが終わった時<br>
+
+のイベントが発生します。<br>
+
+<br>
+
+通常はmMouseEvent_OnActionEndイベントプロシジャ内で<br>
+
+ActionMoveプロパティの中身をみて処理を行います。<br>
+
+</p>
+
+<p>なおフックを終了するときは</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'フック解除
+
+Public Sub ResetHook()
+
+    If mHook Then
+
+        UnhookWindowsHookEx mHook
+
+        mHook = 0
+
+        Set mHookEvent = Nothing
+
+        Debug.Print &quot;End hook&quot;
+
+    End If
+
+End Sub</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>ResetHook（）関数を呼び出します。<br>
+
+この中でフックプロシジャを解除するUnhookWindowsHookEx()APIを呼び出してます。<br>
+
+</p>
+
+<hr>
+
+<p>マウスジェスチャの説明というよりフックの説明でした(＾＾；<br>
+
+<br>
+
+ちなみにSetWindowsHookExによるフックではなく、<br>
+
+いわゆる「サブクラス化」では子ウィンドウのメッセージを簡単に取得できないので<br>
+
+こういう場合はフックを使った方がいいかと思います。（適材適所）<br>
+
+<br>
+
+フックにはもう一つ大事なことがあります。<br>
+
+フックプロシジャは自プロセスのウィンドウ（スレッド）だけでなく、<br>
+
+他のプロセスのウィンドウ（スレッド）に登録することができるのです。<br>
+
+また特定のプロセスではなく、全プロセスにフックをかけることもできます。<br>
+
+<br>
+
+これは「<font color="#FF00FF"><b>グローバルフック（またはシステムフック）</b></font>」と呼ばれます。<br>
+
+今回使用したのは自分自身のウィンドウにフックをかけた「<font color="#FF00FF"><b>ローカルフック</b></font>」というものです。<br>
+
+<br>
+
+グローバルフックをすると、面白いことができます。<br>
+
+他のプロセス（プログラム）でのキー入力や<br>
+
+別プログラムがアクティブになった瞬間などを取得することもできます。<br>
+
+ゲームの画面で特定のキーを１つ押すだけで複数の入力を行ったようにしたり、<br>
+
+あるプログラムで特定の画面を出した瞬間になにかをするとかができます。<br>
+
+私も愛用させていただいている「<b>どこでもホイール」</b>のようなこともできます。<br>
+
+（おそらくどこでもホイールはフックでやっているかと思われます）<br>
+
+<br>
+
+<b>ただし、VBでは無理です（＾＾；</b><br>
+
+グローバルフックを行うときは、フックプロシジャをDLL内におかなければなりません。<br>
+
+（すべてのプロセス空間にロードされる為です）<br>
+
+VBではActiveXDLLを作成することはできますが、<br>
+
+フックプロシジャを入れる純粋なDLLを作成することが出来ないためです。<br>
+
+ちょっと残念ですよね～<br>
+
+<br>
+
+</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

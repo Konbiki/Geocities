@@ -1,0 +1,459 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>DirectShow関係3(VB2005)</b></h1>
+
+<hr>
+
+<h2>1．動画の再生</h2>
+
+
+
+<p>VB6の時と同様にもっとも簡単と思われる動画ファイル再生からやってみます。<br>
+<br>
+DirectShow(COM)を直接操作する場合、<br>
+その手順は基本的にVC++などでの操作と同じになります。<br>
+動画を再生する簡単な方法は下記のようになります。<br>
+<br>
+　①フィルタグラフマネージャのインスタンスを作成する<br>
+<br>
+　②フィルタグラフを作成する<br>
+<br>
+　③グラフを実行する<br>
+<br>
+動画を再生するだけのサンプルプログラムは下記になります。<br>
+実行すると「c:\media\test.avi」というファイルをいきなり再生します。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+'名前空間のインポート
+Imports System
+Imports System.Runtime.InteropServices
+
+'DirectShowインターフェースの定義
+Module DirectShowDefine
+
+    'IGraphBuilderインターフェース
+    &lt;ComVisible(True), ComImport(), Guid(&quot;56a868a9-0ad4-11ce-b03a-0020af0ba770&quot;), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)&gt; _
+    Public Interface IGraphBuilder
+        &lt;PreserveSig()&gt; Function AddFilter(&lt;[In]()&gt; ByVal pFilter As IntPtr, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal pName As String) As Integer
+        &lt;PreserveSig()&gt; Function RemoveFilter(&lt;[In]()&gt; ByVal pFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function EnumFilters(&lt;Out()&gt; ByRef ppEnum As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function FindFilterByName(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal pName As String, &lt;Out()&gt; ByRef ppFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function ConnectDirect(&lt;[In]()&gt; ByVal ppinOut As IntPtr, &lt;[In]()&gt; ByVal ppinIn As IntPtr, &lt;[In](), MarshalAs(UnmanagedType.LPStruct)&gt; ByVal pmt As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function Reconnect(&lt;[In]()&gt; ByVal ppin As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function Disconnect(&lt;[In]()&gt; ByVal ppin As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function SetDefaultSyncSource() As Integer
+
+        &lt;PreserveSig()&gt; Function Connect(&lt;[In]()&gt; ByVal ppinOut As IntPtr, &lt;[In]()&gt; ByVal ppinIn As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function Render(&lt;[In]()&gt; ByVal ppinOut As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function RenderFile(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFile As String, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrPlayList As String) As Integer
+        &lt;PreserveSig()&gt; Function AddSourceFilter(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFileName As String, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFilterName As String, &lt;Out()&gt; ByRef ppFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function SetLogFile(ByVal hFile As IntPtr) As Integer
+        &lt;PreserveSig()&gt; Function Abort() As Integer
+        &lt;PreserveSig()&gt; Function ShouldOperationContinue() As Integer
+    End Interface
+
+    'IMediaControlインターフェース
+    &lt;ComVisible(True), ComImport(), Guid(&quot;56a868b1-0ad4-11ce-b03a-0020af0ba770&quot;), InterfaceType(ComInterfaceType.InterfaceIsDual)&gt; _
+    Public Interface IMediaControl
+        &lt;PreserveSig()&gt; Function Run() As Integer
+        &lt;PreserveSig()&gt; Function Pause() As Integer
+        &lt;PreserveSig()&gt; Function [Stop]() As Integer
+        &lt;PreserveSig()&gt; Function GetState(ByVal msTimeout As Integer, ByRef pfs As Integer) As Integer
+        &lt;PreserveSig()&gt; Function RenderFile(ByVal strFilename As String) As Integer
+        &lt;PreserveSig()&gt; Function AddSourceFilter(&lt;[In]()&gt; ByVal strFilename As String, &lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; Function get_FilterCollection(&lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; Function get_RegFilterCollection(&lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; Function StopWhenReady() As Integer
+    End Interface
+
+End Module
+
+Public Class Form1
+
+    'グラフビルダー
+    Private mGrp As IGraphBuilder
+
+    Private Sub Form1_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+        'タイプの取得
+        Dim comtype As Type
+        comtype = Type.GetTypeFromCLSID(New Guid(&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;))
+
+        'インスタンス作成
+        Dim comobj As Object
+        comobj = Activator.CreateInstance(comtype)
+        mGrp = CType(comobj, IGraphBuilder)
+        comobj = Nothing
+        comtype = Nothing
+
+        'グラフ作成
+        mGrp.RenderFile(&quot;c:\media\test.avi&quot;, &quot;&quot;)
+
+        '再生
+        Dim ctl As IMediaControl
+        ctl = CType(mGrp, IMediaControl)
+        ctl.Run()
+
+    End Sub
+
+End Class
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p><br>
+このサンプルプログラムは、<br>
+VB2005の「新しいプロジェクト」で「Windowsアプリケーション」を選択し、<br>
+Form1にコードを書いたものです。<br>
+以後、このソースを元に説明していきます。</p>
+
+
+
+<hr>
+
+
+
+<p>まず、DirectShow(COM)のインターフェースを定義してやる必要があります。<br>
+いきなりですが、定義は下記のようになります。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+'名前空間のインポート
+<font color="#0000FF">Imports</font> System
+<font color="#0000FF">Imports</font> System.Runtime.InteropServices
+
+'DirectShowインターフェースの定義
+<font color="#0000FF">Module</font> DirectShowDefine
+
+    'IGraphBuilderインターフェース
+    &lt;ComVisible(True), ComImport(), Guid(&quot;56a868a9-0ad4-11ce-b03a-0020af0ba770&quot;), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)&gt; _
+    <font color="#0000FF">Public Interface</font> <font color="#FF0000">IGraphBuilder</font>
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> AddFilter(&lt;[In]()&gt; ByVal pFilter As IntPtr, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal pName As String) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> RemoveFilter(&lt;[In]()&gt; ByVal pFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> EnumFilters(&lt;Out()&gt; ByRef ppEnum As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> FindFilterByName(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal pName As String, &lt;Out()&gt; ByRef ppFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> ConnectDirect(&lt;[In]()&gt; ByVal ppinOut As IntPtr, &lt;[In]()&gt; ByVal ppinIn As IntPtr, &lt;[In](), MarshalAs(UnmanagedType.LPStruct)&gt; ByVal pmt As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Reconnect(&lt;[In]()&gt; ByVal ppin As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Disconnect(&lt;[In]()&gt; ByVal ppin As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> SetDefaultSyncSource() As Integer
+
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Connect(&lt;[In]()&gt; ByVal ppinOut As IntPtr, &lt;[In]()&gt; ByVal ppinIn As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Render(&lt;[In]()&gt; ByVal ppinOut As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> RenderFile(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFile As String, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrPlayList As String) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> AddSourceFilter(&lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFileName As String, &lt;[In](), MarshalAs(UnmanagedType.LPWStr)&gt; ByVal lpcwstrFilterName As String, &lt;Out()&gt; ByRef ppFilter As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> SetLogFile(ByVal hFile As IntPtr) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Abort() As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> ShouldOperationContinue() As Integer
+    <font color="#0000FF">End Interface</font>
+
+    'IMediaControlインターフェース
+    &lt;ComVisible(True), ComImport(), Guid(&quot;56a868b1-0ad4-11ce-b03a-0020af0ba770&quot;), InterfaceType(ComInterfaceType.InterfaceIsDual)&gt; _
+    <font color="#0000FF">Public Interface</font> <font color="#FF00FF">IMediaControl</font>
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Run() As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> Pause() As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> [Stop]() As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> GetState(ByVal msTimeout As Integer, ByRef pfs As Integer) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> RenderFile(ByVal strFilename As String) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> AddSourceFilter(&lt;[In]()&gt; ByVal strFilename As String, &lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> get_FilterCollection(&lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> get_RegFilterCollection(&lt;Out(), MarshalAs(UnmanagedType.IDispatch)&gt; ByRef ppUnk As Object) As Integer
+        &lt;PreserveSig()&gt; <font color="#0000FF">Function</font> StopWhenReady() As Integer
+    <font color="#0000FF">End Interface</font>
+
+<font color="#0000FF">End Module</font>
+</pre>
+    </td>
+  </tr>
+</table>
+<p><br>
+最初の<b><font color="#0000FF">Imports</font></b>は、<b>System</b>及び<b>System.Runtime.InteropServices</b>の<br>
+名前空間に属する関数等を使うための宣言になります。<br>
+<br>
+<b>Module DirectShowDefine～End Module</b>では動画を再生するために必要な<br>
+二つのインターフェースを定義しています。<br>
+<br>
+<b><font color="#FF0000">IGraphBuilder</font></b>はフィルタグラフを作成するメソッドからなるインターフェースです。<br>
+<b><font color="#FF00FF">IMediaControl</font></b>はフィルタグラフの動作を制御するメソッドからなるインターフェースです。<br>
+つまり<b><font color="#FF0000">IGraphBuilder</font></b>でグラフを作り、<b><font color="#FF00FF">IMediaControl</font></b>でグラフを実行します。<br>
+<br>
+インターフェースは「<b><font color="#0000FF">Interface</font></b>」文で定義します。<br>
+各インターフェースのメソッドや引数などは<br>
+C用のヘッダファイなどをみて定義することになります。<br>
+またSDK内のIDLファイルも参考になります。<br>
+<br>
+ちなみにインターフェース定義のコードについてはヘルプを参照してください。<br>
+実は正直に言いますと、<b>あんまり</b><b>自信がありません。</b>（笑<br>
+「こうやったらできた」程度の精度ですので、疑問があったらこのコードは信じないで調べてくださいませ。<br>
+（個々のキーワードはわかるのですが・・・　COMに関する自分の知識が不安になってくる・・・）</p>
+
+
+
+<hr>
+
+
+
+<p>以降はロジック部分になります。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+<font color="#0000FF">Public Class</font> Form1
+
+    <font color="#008000">'グラフビルダー</font>
+    <font color="#0000FF">Private</font> mGrp As IGraphBuilder
+
+    <font color="#0000FF">Private</font> <font color="#0000FF">Sub</font> Form1_Load(<font color="#0000FF">ByVal</font> sender <font color="#0000FF">As</font> System.Object, <font color="#0000FF">ByVal</font> e As System.EventArgs) <font color="#0000FF">Handles</font> <font color="#0000FF">MyBase</font>.Load
+
+        <font color="#008000">'タイプの取得</font>
+        <font color="#0000FF">Dim</font> comtype <font color="#0000FF">As</font> Type
+        comtype = Type.GetTypeFromCLSID(<font color="#0000FF">New</font> Guid(<font color="#CC3300">&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;</font>))
+
+        <font color="#008000">'インスタンス作成</font>
+        <font color="#0000FF">Dim</font> comobj <font color="#0000FF">As</font> <font color="#0000FF">Object</font>
+        comobj = Activator.CreateInstance(comtype)
+        mGrp = CType(comobj, IGraphBuilder)
+        comobj = <font color="#0000FF">Nothing</font>
+        comtype = <font color="#0000FF">Nothing</font>
+
+        <font color="#008000">'グラフ作成</font>
+        mGrp.RenderFile(<font color="#CC3300">&quot;c:\media\test.avi&quot;</font>, &quot;&quot;)
+
+        <font color="#008000">'再生</font>
+        <font color="#0000FF">Dim</font> ctl As IMediaControl
+        ctl = <font color="#0000FF">CType</font>(mGrp, IMediaControl)
+        ctl.Run()
+
+    <font color="#0000FF">End Sub</font>
+
+<font color="#0000FF">End Class</font>
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p><br>
+各動作ごとに詳細を説明していきます。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+<font color="#0000FF">Public Class</font> Form1
+
+    <font color="#008000">'グラフビルダー</font>
+    <font color="#0000FF">Private</font> mGrp As IGraphBuilder
+
+    <font color="#0000FF">Private</font> <font color="#0000FF">Sub</font> Form1_Load(<font color="#0000FF">ByVal</font> sender <font color="#0000FF">As</font> System.Object, <font color="#0000FF">ByVal</font> e As System.EventArgs) <font color="#0000FF">Handles</font> <font color="#0000FF">MyBase</font>.Load
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>Form1クラスのモジュールセクションに定義している<i><b>mGrp</b></i>は<br>
+変数の型は<b>IGraphBuilder</b>になってますが、<br>
+実体は<b><font color="#FF0000">フィルタグラフマネージャ</font></b>になります。<br>
+<br>
+「<font color="#FF0000">フィルタグラフマネージャ</font>」というオブジェクトを<br>
+<b>IGraphBuilder</b>という色眼鏡をかけてみていると思ってください。<br>
+同様にこのサンプルコードでは、同じオブジェクトに対して<br>
+<b>IMediaControl</b>という色眼鏡ででもみています。<br>
+実体は同じなのですが、見方によってやれることが違うってことです。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+    <font color="#0000FF">Private</font> <font color="#0000FF">Sub</font> Form1_Load(<font color="#0000FF">ByVal</font> sender <font color="#0000FF">As</font> System.Object, <font color="#0000FF">ByVal</font> e As System.EventArgs) <font color="#0000FF">Handles</font> <font color="#0000FF">MyBase</font>.Load
+
+        <font color="#008000">'タイプの取得</font>
+        <font color="#0000FF">Dim</font> comtype <font color="#0000FF">As</font> Type
+        comtype = Type.GetTypeFromCLSID(<font color="#0000FF">New</font> Guid(<font color="#CC3300">&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;</font>))
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>まず「フィルタグラフマネージャ」のタイプを取得します。<br>
+「フィルタグラフマネージャ」のクラスIDを指定して<br>
+関連付けられている型を取得します。<br>
+これは次のインスタンス化のときに必要となります。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+        <font color="#008000">'インスタンス作成</font>
+        <font color="#0000FF">Dim</font> comobj <font color="#0000FF">As</font> <font color="#0000FF">Object</font>
+        comobj = Activator.CreateInstance(comtype)
+        mGrp = CType(comobj, IGraphBuilder)
+        comobj = <font color="#0000FF">Nothing</font>
+        comtype = <font color="#0000FF">Nothing</font>
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p><b>Activator</b>の<b>CreateInstance</b>メソッドにて<br>
+「フィルタグラフマネージャ」のインスタンスを作成します。<br>
+作成したインスタンスはとりあえず<b><i>mGrp</i></b>に入れてます。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+    <font color="#0000FF">Private</font> <font color="#0000FF">Sub</font> Form1_Load(<font color="#0000FF">ByVal</font> sender <font color="#0000FF">As</font> System.Object, <font color="#0000FF">ByVal</font> e As System.EventArgs) <font color="#0000FF">Handles</font> <font color="#0000FF">MyBase</font>.Load
+
+        <font color="#008000">'タイプの取得</font>
+        <font color="#0000FF">Dim</font> comtype <font color="#0000FF">As</font> Type
+        comtype = Type.GetTypeFromCLSID(<font color="#0000FF">New</font> Guid(<font color="#CC3300">&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;</font>))
+
+        <font color="#008000">'インスタンス作成</font>
+        <font color="#0000FF">Dim</font> comobj <font color="#0000FF">As</font> <font color="#0000FF">Object</font>
+        comobj = Activator.CreateInstance(comtype)
+        mGrp = CType(comobj, IGraphBuilder)
+        comobj = <font color="#0000FF">Nothing</font>
+        comtype = <font color="#0000FF">Nothing</font>
+
+        <font color="#008000">'グラフ作成</font>
+        mGrp.RenderFile(<font color="#CC3300">&quot;c:\media\test.avi&quot;</font>, &quot;&quot;)
+
+        <font color="#008000">'再生</font>
+        <font color="#0000FF">Dim</font> ctl As IMediaControl
+        ctl = <font color="#0000FF">CType</font>(mGrp, IMediaControl)
+        ctl.Run()
+
+    <font color="#0000FF">End Sub</font>
+
+<font color="#0000FF">End Class</font>
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>「フィルタグラフマネージャ」が持っている<br>
+「<b>IGraphBuilder</b>インタフェース」の「<b>RenderFile</b>」メソッドで<br>
+動画ファイルからフィルタグラフを作成します。<br>
+動画ファイルを再生するだけなら<br>
+この一行だけでフィルタグラフが作成されます。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+    <font color="#0000FF">Private</font> <font color="#0000FF">Sub</font> Form1_Load(<font color="#0000FF">ByVal</font> sender <font color="#0000FF">As</font> System.Object, <font color="#0000FF">ByVal</font> e As System.EventArgs) <font color="#0000FF">Handles</font> <font color="#0000FF">MyBase</font>.Load
+
+        <font color="#008000">'タイプの取得</font>
+        <font color="#0000FF">Dim</font> comtype <font color="#0000FF">As</font> Type
+        comtype = Type.GetTypeFromCLSID(<font color="#0000FF">New</font> Guid(<font color="#CC3300">&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;</font>))
+
+        <font color="#008000">'インスタンス作成</font>
+        <font color="#0000FF">Dim</font> comobj <font color="#0000FF">As</font> <font color="#0000FF">Object</font>
+        comobj = Activator.CreateInstance(comtype)
+        mGrp = CType(comobj, IGraphBuilder)
+        comobj = <font color="#0000FF">Nothing</font>
+        comtype = <font color="#0000FF">Nothing</font>
+
+        <font color="#008000">'グラフ作成</font>
+        mGrp.RenderFile(<font color="#CC3300">&quot;c:\media\test.avi&quot;</font>, &quot;&quot;)
+
+        <font color="#008000">'再生</font>
+        <font color="#0000FF">Dim</font> ctl As IMediaControl
+        ctl = <font color="#0000FF">CType</font>(mGrp, IMediaControl)
+        ctl.Run()
+
+    <font color="#0000FF">End Sub</font>
+
+<font color="#0000FF">End Class</font>
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>最後にグラフを実行させます。<br>
+<b><i>mGrp</i></b>から「<b>IMediaControl</b>インターフェース」を取得し<br>
+「<b>Run</b>メソッド」にてグラフを実行させます。</p>
+
+
+
+<hr>
+
+
+
+<p>先にも書きましたが、この方法でDirectShowを使うときの手順は、<br>
+基本的にVC用のヘルプを参照することになります。<br>
+インスタンス化やキャストの部分はVB2005用に読み違える必要がありますが、<br>
+流れとしてはまったく同じ操作になります。<br>
+<br>
+問題なのはインターフェースの定義ぐらいでしょうか。(^^;<br>
+とりあえず私が(自分用に)作成した基本的なインターフェースの定義を<br>
+近いうちにアップしてみます。<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+</body>
+
+
+
+</html>
+

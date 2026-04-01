@@ -1,0 +1,207 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<h1><b>OpenCV関係(VB2005)</b></h1>
+
+<hr>
+
+<h2><b>3．</b>サンプル３（テンプレートマッチング）</h2>
+
+<p>VB(VB2005)によるOpenCV使用のサンプルプログラムの３番目です。<br>
+全ソースは下記からダウンロードできます。<br>
+<a href="OpenCVTemplateMatching.lzh">OpenCVTemplateMatching.lzh</a></p>
+
+<p><img border="0" src="opencv3.jpg" width="655" height="555"></p>
+
+<p><br>
+このサンプルプログラムは、どっかで見たようなゲーム？のような形態をしています。<br>
+画面に表示された漢字の中から正解を探すというものです。<br>
+「問題作成」ボタンを押せば問題が作成されます。<br>
+「答え」ボタンを押せば答えが表示されます。<br>
+<br>
+問題を作るときは、はじめに正解以外の文字をランダムに描画していき最後に正解の文字を描画します。<br>
+で、「答え」ボタンが押されたとき、わざわざテンプレートマッチングを用いて正解を求めています。<br>
+<br>
+答えを求めるときの主なコードは下記になります。<br>
+（他のサンプルと同様に<b>OpenCVDefine.vb</b>と<b>OpenCVUtility.vb</b>を使用します。<br>
+　なお、前のサンプルよりこっちのほう機能がアップしてます）</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <p>
+<br>
+<font SIZE="2" COLOR="#008000">'答えボタン押下時<br>
+</font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub</font><font SIZE="2"> 
+Btn_Find_Click(</font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+sender </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+System.Object, </font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+e </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+System.EventArgs) </font><font SIZE="2" COLOR="#0000ff">Handles</font><font SIZE="2"> 
+Btn_Find.Click<br>
+<br>
+&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'状態チェック<br>
+</font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+Pic_Image.Image </font><font SIZE="2" COLOR="#0000ff">Is</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Nothing</font><font SIZE="2"> 
+</font><font SIZE="2" COLOR="#0000ff">Then</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Exit</font><font SIZE="2"> 
+</font><font SIZE="2" COLOR="#0000ff">Sub<br>
+</font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">If</font><font SIZE="2"> 
+Pic_Template.Image </font><font SIZE="2" COLOR="#0000ff">Is</font><font SIZE="2"> 
+</font><font SIZE="2" COLOR="#0000ff">Nothing</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Then</font><font SIZE="2"> 
+</font><font SIZE="2" COLOR="#0000ff">Exit</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+<br>
+</font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'問題のイメージ取得<br>
+</font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+qimg </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+IplImageWrapper(</font><font SIZE="2" COLOR="#0000ff">CType</font><font SIZE="2">(Pic_Image.Image, 
+Bitmap)) 　　　　</font><font SIZE="2" COLOR="#008000">'問題イメージ<br>
+</font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+timg </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+IplImageWrapper(</font><font SIZE="2" COLOR="#0000ff">CType</font><font SIZE="2">(Pic_Template.Image, 
+Bitmap)) </font><font size="2">　　</font><font SIZE="2" COLOR="#008000">'テンプレートイメージ
+</p>
+      </font><font SIZE="2">
+      <p></font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'検索<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      pnt </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> Point<br>
+      &nbsp;&nbsp;&nbsp; pnt = TemplateMatching(qimg, timg)</p>
+      <p>&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'答えの位置に赤丸描画<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      g </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> Graphics 
+      = Graphics.FromImage(Pic_Image.Image)<br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      pn </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+      Pen(Color.Red, 4)<br>
+      &nbsp;&nbsp;&nbsp; g.DrawEllipse(pn, pnt.X - CHARSIZE \ 2, pnt.Y - 
+      CHARSIZE \ 2, CHARSIZE * 2, CHARSIZE * 2)<br>
+      &nbsp;&nbsp;&nbsp; g.Dispose()<br>
+      &nbsp;&nbsp;&nbsp; pn.Dispose()<br>
+      &nbsp;&nbsp;&nbsp; Pic_Image.Refresh()<br>
+      <br>
+      </font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br>
+      <br>
+      </font><font SIZE="2" COLOR="#008000">'----------------------------------------------------------<br>
+      '検索<br>
+      </font><font SIZE="2" COLOR="#0000ff">Private</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Function</font><font SIZE="2"> 
+      TemplateMatching(</font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      Img </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IplImageWrapper, </font><font SIZE="2" COLOR="#0000ff">ByVal</font><font SIZE="2"> 
+      Template </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IplImageWrapper) </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      Point<br>
+      <br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'グレイスケールイメージ取得<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      imggry </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvCreateImage(Img.CvSize, IPL_DEPTH_8U, 1)<br>
+      &nbsp;&nbsp;&nbsp; cvCvtColor(Img.Ptr, imggry, CV_BGR2GRAY)<br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      tmpgry </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvCreateImage(Template.CvSize, IPL_DEPTH_8U, 1)<br>
+      &nbsp;&nbsp;&nbsp; cvCvtColor(Template.Ptr, tmpgry, CV_BGR2GRAY)<br>
+      <br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'テンプレートマッチングの結果を格納する領域を作成<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      sz </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+      CvSize(Img.Size.Width - Template.Size.Width + 1, Img.Size.Height - 
+      Template.Size.Height + 1)<br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      result </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      IntPtr = cvCreateImage(sz, IPL_DEPTH_32F, 1)<br>
+      <br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'テンプレートマッチング実行</font><font SIZE="2"><br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">cvMatchTemplate(imggry, 
+      tmpgry, result, CV_TM_SQDIFF)</font><font SIZE="2" COLOR="#008000"><br>
+      &nbsp;&nbsp;&nbsp; 'cvMatchTemplate(Img.Ptr, Template.Ptr, result, 
+      CV_TM_SQDIFF)<br>
+      <br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'最も一致する位置を取得<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      min_val, max_val </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">Double<br>
+      </font><font SIZE="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> 
+      min_loc, max_loc </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> 
+      CvPoint<br>
+      &nbsp;&nbsp;&nbsp; cvMinMaxLoc(result, min_val, max_val, min_loc, max_loc, 
+      IntPtr.Zero)<br>
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Return</font><font SIZE="2"> 
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> 
+      Point(min_loc.x, min_loc.y)<br>
+      <br>
+      </font><font SIZE="2" COLOR="#0000ff">End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Function<br>
+      </font>
+    </td>
+  </tr>
+</table>
+
+<p>
+<br>
+流れは下記になります。<br>
+<br>
+　①問題画像と答え画像(テンプレート)を元にそれぞれイメージ(IplImage)を作成します。<br>
+　　　この辺はラッパクラス内でBitmapをからビットマップデータをIplImageに転送しています。
+</p>
+
+<p>　②それぞれのイメージをグレイスケール化します。（実はグレイスケール化する必要はないと思う）
+</p>
+
+<p>　③cvMatchTemplateの結果を格納する<b>IPL_DEPTH_32F</b>タイプのイメージを作成します。<br>
+　　この結果は表示する必要がない(っていうかそのままでは表示できない)ので<br>
+　　IplImageWrapperを使いません。
+</p>
+
+<p>　④cvMatchTemplateを呼び出し、テンプレートマッチングを行います。
+</p>
+
+<p>　⑤cvMinMaxLocにて最も一致する箇所を求めます。
+</p>
+
+<p>　⑥最も一致する位置を「回答」として、その位置に赤丸を描画します。<br>
+</p>
+
+<hr>
+
+<p>テンプレートマッチングの使い方としてどうよ？って突っ込みはあるでしょうが、<br>
+とりあえず間違いを出したことはないみたいです（＾＾；<br>
+<br>
+パターンを用意するのが面倒だったので漢字文字を用いていますが、<br>
+当然記号である必要はないです。<br>
+スキャナとか使えば「ウォーリーをさがせ！」を解くプログラムにできるかもしれません（笑
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+
+
+<p>　</p>
+
+
+
+</body>
+
+
+
+</html>
+

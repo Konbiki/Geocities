@@ -1,0 +1,165 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>DirectShow関係3(VB2005)</b></h1>
+
+<hr>
+
+<h2>３．サンプル集</h2>
+
+
+
+<p>VB2005でDirectShowを使うときに参考になりそうなサンプルプログラムを公開します。<br>
+ソースは自由に流用して頂いて結構です。
+</p>
+
+
+
+<p>各プロジェクトには下記のモジュールファイルがほぼ共通に入ってますが、<br>
+中身はそれぞれ若干違います。
+</p>
+
+
+
+<table border="1" width="62%">
+  <tr>
+    <td width="29%" bgcolor="#FFFFFF">ファイル名</td>
+    <td width="71%" bgcolor="#FFFFFF">内容</td>
+  </tr>
+  <tr>
+    <td width="29%" bgcolor="#FFFFFF">DirectShowDefine.vb</td>
+    <td width="71%" bgcolor="#FFFFFF">DirectShow関係の定義モジュール</td>
+  </tr>
+  <tr>
+    <td width="29%" bgcolor="#FFFFFF">DirectShowUtility.vb</td>
+    <td width="71%" bgcolor="#FFFFFF">VB2005から使用するときに便利な関数モジュール</td>
+  </tr>
+</table>
+<p>特に<b>DirectShowUtility.vb</b>は使用するたびに機能を追加していったり、<br>
+全体的に作り変えたりしてますんで、流用するときは注意して下さい。</p>
+<p>基本的に新しいやつの方がバグが少ないかとは思います(^^;</p>
+
+
+
+<hr>
+
+<p>３．１　動画プレーヤー
+</p>
+
+
+
+<p><img border="0" src="dshow21.jpg" width="328" height="313">
+</p>
+
+
+
+<p>全ソース：<a href="DSPlayer.lzh">DSPlayer.lzh</a>
+</p>
+
+
+
+<p>動画ファイルの再生に関する操作のサンプルです。<br>
+再生用グラフの作り方、再生/停止/シーク、グラフ状態の取得、<br>
+ウィンドウ内での表示、などが参考になるかもしれません。<br>
+ちなみに、AVI/MPEG/WMVなどが再生できますし、WavやMP3などの音声も再生できます。<br>
+あとJPEGやアニメーションＧＩＦ(ちょっと問題ありかも)も再生できます。
+</p>
+
+
+
+<p>さらには下記から入手できるReal Media 
+Splitterというのをインストールすれば<br>
+Real形式も再生できるでしょう。<br>
+　<a href="http://sourceforge.net/project/showfiles.php?group_id=82303&amp;package_id=87719">http://sourceforge.net/project/showfiles.php?group_id=82303&amp;package_id=87719</a>
+</p>
+
+
+
+<hr>
+
+<p>３．２　サンプルグラバによる静止画取得
+</p>
+
+
+
+<p><img border="0" src="dshow22.jpg" width="364" height="343"><img border="0" src="dshow23.jpg" width="303" height="161">
+</p>
+
+
+
+<p>全ソース：<a href="DSSnap.lzh">DSSnap.lzh</a>
+</p>
+
+
+
+<p>カメラからのライブ画像を表示し、任意のタイミングで静止画を取得するサンプルです。<br>
+静止画の取得はサンプルグラバ(ISampleGrabberインターフェース)を用いて行います。<br>
+静止画の取得方法だけでなく、カメラの選択、フォーマット形式の選択、<br>
+プロパティページ表示なども参考になるかと思います。
+</p>
+
+
+
+<hr>
+
+<p>３．３　サンプルグラバによる音声波形取得
+</p>
+
+
+
+<p><a href="DSWaveView.lzh"><img border="0" src="dshow24.jpg" width="536" height="381"></a>
+</p>
+
+
+
+<p><a href="DSWaveView.lzh">DSWaveView.lzh</a>
+</p>
+
+
+
+<p>音声ファイルを再生しながら、現在再生中の波形（上段）を表示するサンプルです。<br>
+波形の取得は「３．２　サンプルグラバによる静止画取得」と同様にサンプルグラバを用いていますが、<br>
+ポーリングではなくコールバックを用いています。<br>
+サンプルグラバを通ったストリームはすぐに音となる訳ではなく、<br>
+通常オーディオレンダラでバッファリングされます。<br>
+この為ポーリングした波形を表示したのでは現在の音声と波形が一致しません。<br>
+これを回避するためコールバックですべての波形データを取得し一定時間バッファに溜め込んだ後、<br>
+バッファ内から現在再生時刻の波形を取り出して表示しています。<br>
+<br>
+あと波形だけだと寂しかったので、DCTで得た周波数成分も表示しています。（下段）<br>
+（VB2005でも512サンプルぐらいならPen4-3GHzで十分変換できますね）<br>
+<br>
+ちなみに、Wav形式だけでなくMP3やWMAなどの圧縮されたファイルの波形も表示できます。<br>
+この辺がDirectSoundではできない所ですね。<br>
+</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+</body>
+
+
+
+</html>
+

@@ -1,0 +1,1588 @@
+<html>
+
+
+
+<head>
+
+<meta http-equiv="Content-Language" content="ja">
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>VBでマウスジェスチャ</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC"><DIV ALIGN=CENTER><!--#geoguide--></DIV>
+
+
+
+<p><b>VBでマウスの動きを捉える方法(DirectInput編)</b></p>
+
+<hr>
+
+<p>先のSetWindowHook()APIを使う方法では、<br>
+
+自アプリがアクティブの場合のみマウスの動きを捉えることができましたが、<br>
+
+他アプリでの動きを捉えるにはVC++等でDLLを作成する必要がありました。
+
+</p>
+
+
+
+<p>今回ご紹介するDirectInputを使う方法では<br>
+
+やり方によっては他アプリ上でのマウス操作を捉えることができます。<br>
+
+またマウスの動きだけでなくキーボードの入力まで<br>
+
+捉えることが可能です。
+
+</p>
+
+
+
+<hr>
+
+<p>フックによるマウス操作の捕捉は<br>
+
+OSからのメッセージをVBランタイム内のウィンドウプロシジャが受け取る前に<br>
+
+フックプロシジャで横取りすることで行っていました。<br>
+
+DirectInputでは仕組みはちょっと違います。<br>
+
+<br>
+
+DirectInputの場合、マウスやキーボード、ジョイスティックなどの操作を<br>
+
+Windowsメッセージによらずにアプリケーションに報告します。<br>
+
+このため他アプリがアクティブであろうと<br>
+
+操作を取得することが可能な訳です。</p>
+
+
+
+<hr>
+
+<p><b>DirectInputを使うための準備</b></p>
+
+<p>DirectInputをVBから使うには「DirectX8 for Visual Basic Type Library」を参照設定します。<br>     
+  
+ちなみにDirectXの各バージョンは使える機能が異なる全く違うライブラリみたいなものですが<br>  
+  
+最新のものをインストールすれば前のバージョンも全てインストールされます。<br>  
+  
+（おかげでセットアップファイルのサイズがどんどんでかくなるｗ）</p>  
+  
+  
+  
+<hr>  
+  
+<p>いつも通りサンプルプログラムを元に説明していきます。<br>  
+  
+<a href="mousedi.lzh">こちらのサンプルプログラム</a>を実行すると下記のウィンドウが開きます。</p>  
+  
+<p><img border="0" src="mouse21.jpg" width="343" height="217"></p>  
+  
+<p>「Mouse」ボタンでマウス操作の捕捉を開始し、<br>  
+  
+「Keyboard」ボタンでキー操作の捕捉を開始します。<br>  
+  
+それぞれ再度押すと補足を中止します。（マウス操作は環境によっては補足をやめません^^;）<br>  
+  
+補足した操作は下のリストボックスに表示されます。（表示するだけでジェスチャのチェックまではしてません^^;）</p>  
+  
+<p>このサンプルプログラムがアクティブでなく<b>他のアプリがアクティブな状態でも</b><br>  
+  
+ちゃんとマウスとキーボードの状態変化を捉えていることが確認できると思います。</p>  
+  
+<hr>  
+  
+<p>プログラムは全てForm1に書いてありますので、順に説明致します。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>Option Explicit
+
+
+
+'///////////////////////////////////////////////////////
+
+'DirectInput
+
+'///////////////////////////////////////////////////////
+
+
+
+
+
+'///////////////////////////////////////////////////////
+
+Implements DirectXEvent8
+
+</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>Implements文の意味はヘルプで調べて下さい。。。では不親切かもしれないので簡単に説明します。<br>  
+  
+簡単にいえば「<font size="4" color="#0000FF"><b>指定されたクラスのメソッド/プロパティを必ず持つ</b></font>」ということの宣言になります。<br>  
+  
+ここの場合DirectXEvent8インターフェースのメソッドをこのフォームが持つということになります。<br>  
+  
+別の言い方をすれば「<font color="#0000FF">このForm1というフォームはDirectXEvent8インターフェースとしての一面を持っていますよ</font>」<br>  
+  
+ということ宣言しているということです。<br>  
+  
+この結果DirectXEvent8インターフェースを引数に持つ関数にこのフォームを渡せることになります。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>'///////////////////////////////////////////////////////
+
+Private Const MAX_BUFFERSIZE As Long = 10       'マウス用バッファサイズ
+
+
+
+
+
+'///////////////////////////////////////////////////////
+
+Private mDX As DirectX8                         'DirectXオブジェクト
+
+Private mDI As DxVBLibA.DirectInput8            'DirectInputオブジェクト
+
+
+
+Private mDIDevM As DxVBLibA.DirectInputDevice8  'マウス用DirectInputDeviceオブジェクト
+
+Private mhEventM As Long                        'マウス用イベントハンドル
+
+Private mDIDevK As DxVBLibA.DirectInputDevice8  'キー用DirectInputDeviceオブジェクト
+
+Private mhEventK As Long                        'キー用イベントハンドル</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>定数とモジュールレベルで存在する変数を定義しています。<br>  
+  
+各変数の意味や用途はその都度説明します。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre><font size="1">'フォームロード時
+
+Private Sub Form_Load()
+
+
+
+<font color="#FF00FF">    'コントロールの初期化
+
+    chk_Mouse.Enabled = False
+
+    chk_Keyboard.Enabled = False
+
+</font>
+
+<font color="#008080">    'DirectXオブジェクトの生成
+
+    Set mDX = New DxVBLibA.DirectX8
+
+
+
+    'DirectInputオブジェクトの生成
+
+    Set mDI = mDX.DirectInputCreate()
+
+    If mDI Is Nothing Then
+
+        MsgBox &quot;DirectInputオブジェクトが生成できません。&quot;
+
+        Exit Sub
+
+    End If</font>
+
+    
+
+<font color="#0000FF">    'マウスの準備
+
+    'DirectInputDeviceオブジェクトの生成
+
+    Set mDIDevM = mDI.CreateDevice(&quot;guid_SysMouse&quot;)
+
+    If mDIDevM Is Nothing Then
+
+        MsgBox &quot;Mouse用DirectInputDeviceオブジェクトが生成できません。&quot;
+
+    Else
+
+        '入力データ形式の設定
+
+        mDIDevM.SetCommonDataFormat DIFORMAT_MOUSE2
+
+        
+
+        '強調レベルの設定
+
+        mDIDevM.SetCooperativeLevel Me.hWnd, DISCL_BACKGROUND Or DISCL_NONEXCLUSIVE
+
+        
+
+        'イベントバッファの準備
+
+        Dim diprop As DxVBLibA.DIPROPLONG
+
+        With diprop
+
+            .lHow = DIPH_DEVICE
+
+            .lObj = 0
+
+            .lData = 10
+
+        End With
+
+        mDIDevM.SetProperty &quot;DIPROP_BUFFERSIZE&quot;, diprop
+
+        
+
+        'イベントの設定
+
+        mhEventM = mDX.CreateEvent(Me)
+
+        mDIDevM.SetEventNotification mhEventM
+
+        
+
+        'チェックボックスを使用可能にする
+
+        chk_Mouse.Enabled = True
+
+    End If</font>
+
+    
+
+<font color="#FF0000">    'キーの準備
+
+    Set mDIDevK = mDI.CreateDevice(&quot;GUID_SysKeyboard&quot;)
+
+    If mDIDevK Is Nothing Then
+
+        MsgBox &quot;Keyboard用DirectInputDeviceオブジェクトが生成できません。&quot;
+
+    Else
+
+        '入力データ形式の設定
+
+        mDIDevK.SetCommonDataFormat DIFORMAT_KEYBOARD
+
+        
+
+        '強調レベルの設定
+
+        mDIDevK.SetCooperativeLevel Me.hWnd, DISCL_BACKGROUND Or DISCL_NONEXCLUSIVE
+
+        
+
+        'イベントの設定
+
+        mhEventK = mDX.CreateEvent(Me)
+
+        mDIDevK.SetEventNotification mhEventK
+
+        
+
+        'チェックボックスを使用可能にする
+
+        chk_Keyboard.Enabled = True
+
+    End If</font>
+
+
+
+End Sub</font></pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>フォームロード時には<span style="background-color: #FFFFFF"><font color="#FF00FF">コントロールの初期化</font></span>、<span style="background-color: #FFFFFF"><font color="#008080">DirectX(DirectInput)の準備</font></span>、<br>  
+  
+<span style="background-color: #FFFFFF"><font color="#0000FF">マウス捕捉の準備</font></span>、<span style="background-color: #FFFFFF"><font color="#FF0000">キーボード捕捉の準備</font></span>を行っています。</p>  
+  
+<p>　</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>'フォームロード時
+
+Private Sub Form_Load()
+
+
+
+    'コントロールの初期化
+
+    chk_Mouse.Enabled = False
+
+    chk_Keyboard.Enabled = False</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>まずマウスとキーの各情報を取得するかのスイッチであるチェックボックスを使用不可にしています。<br>  
+  
+各チェックボックスは情報取得の準備が成功したときに使用可能にしています。<br>  
+  
+</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>'DirectXオブジェクトの生成
+
+    Set mDX = New DxVBLibA.DirectX8
+
+
+
+    'DirectInputオブジェクトの生成
+
+    Set mDI = mDX.DirectInputCreate()
+
+    If mDI Is Nothing Then
+
+        MsgBox &quot;DirectInputオブジェクトが生成できません。&quot;
+
+        Exit Sub
+
+    End If</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>DirectX、DirectInputオブジェクトの生成を行っています。<br>  
+  
+DirectXの各オブジェクトは親と言えるオブジェクトから子のオブジェクトを作っていきます。<br>  
+  
+<br>  
+  
+　DirectX　→　DirectInput　→　DirectInputDevice<br>
+
+</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'マウスの準備
+
+    'DirectInputDeviceオブジェクトの生成
+
+    Set mDIDevM = mDI.CreateDevice(&quot;guid_SysMouse&quot;)
+
+    If mDIDevM Is Nothing Then
+
+        MsgBox &quot;Mouse用DirectInputDeviceオブジェクトが生成できません。&quot;
+
+    Else</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>マウスの動き取得用の<b>DirectInputDevice</b>オブジェクトを生成します。<br>
+
+<b>
+
+DirectInputDevice</b>オブジェクトはその名が示すようにデバイス毎に作成します。<br>
+
+デバイスとはマウスやキーボード、ジョイスティックなどです。<br>
+
+マウスやキーボードはシステムに一つしかない(複数あっても一つと見なされる)ので<br>
+
+<b>
+
+CreateDevice</b>メソッドに&quot;<b>guid_SysMouse</b>&quot;又は&quot;<b>GUID_SysKeyboard</b>&quot;を指定できます。<br>
+
+ジョイスティックなどは複数存在しますので列挙し目的のジョイスティックのGUIDを指定します。<br>
+
+</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'入力データ形式の設定
+
+        mDIDevM.SetCommonDataFormat DIFORMAT_MOUSE2
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>取得するデータ形式を設定します。以下のようなものを指定できます。</p>
+
+<table border="1" bgcolor="#FFFFFF" cellspacing="1" cellpadding="0">
+
+  <tr>
+
+    <td width="130" align="center" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">引数</font></td>
+
+    <td width="478" align="center" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">取得するデータ形式</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="130" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">DIFORMAT_JOYSTICK</font></td>
+
+    <td width="478" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		通常のジョイスティックやジョイパッド</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="130" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">DIFORMAT_JOYSTICK2</font></td>
+
+    <td width="478" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		フォースフィードバックとかがついているジョイスティック</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="130" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">DIFORMAT_KEYBOARD</font></td>
+
+    <td width="478" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		キーボード</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="130" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">DIFORMAT_MOUSE</font></td>
+
+    <td width="478" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">			４ボタンまでのマウス</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="130" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">DIFORMAT_MOUSE2</font></td>
+
+    <td width="478" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">			８ボタンまでのマウス</font></td>
+
+  </tr>
+
+</table>
+
+<p>なぜデータ形式を指定する必要があるかというと、<br>
+
+マウスとテンキーがくっついているようなデバイスも世の中にはあるので<br>
+
+一つのデバイス(同じGUID)で複数のデータ形式が取得できる場合があるためです(<font size="2">たぶん</font>)。<br>
+
+</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'強調レベルの設定
+
+        mDIDevM.SetCooperativeLevel Me.hWnd, DISCL_BACKGROUND Or DISCL_NONEXCLUSIVE
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>強調レベルを指定します。<br>
+
+第一引数はターゲットのウィンドウハンドルですので自分自身のウィンドウを指定します。<br>
+
+大切なのは第二引数のフラグで、主に下記の４つの組み合わせになります。</p>
+
+<table border="1" bgcolor="#FFFFFF" cellspacing="1" cellpadding="0" width="619">
+
+  <tr>
+
+    <td width="155" align="center" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">引数</font></td>
+
+    <td width="452" align="center" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">取得するデータ形式</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="155" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">    DISCL_BACKGROUND</font></td>
+
+    <td width="452" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		自アプリがアクティブでなくとも状態を取得できる</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="155" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">    DISCL_FOREGROUND</font></td>
+
+    <td width="452" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		自アプリがアクティブであるときのみ状態を取得できる</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="155" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">    DISCL_EXCLUSIVE</font></td>
+
+    <td width="452" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">			自アプリのみ状態を取得できる</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="155" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">    DISCL_NONEXCLUSIVE</font></td>
+
+    <td width="452" bgcolor="#CCFFCC"><font size="2" face="ＭＳ ゴシック">		自アプリ以外も状態を取得できる</font></td>
+
+  </tr>
+
+</table>
+
+<p>実際には２種類のON/OFFなので組み合わせ的には４つになります。</p>
+
+<table border="1" bgcolor="#FFFFFF" cellspacing="1" cellpadding="0" width="846" height="86">
+
+  <tr>
+
+    <td width="357" align="center" bgcolor="#CCFFCC" height="13"><font size="2" face="ＭＳ ゴシック">引数</font></td>
+
+    <td width="477" align="center" bgcolor="#CCFFCC" height="13"><font size="2" face="ＭＳ ゴシック">取得するデータ形式</font></td>
+
+  </tr>
+
+  <tr>
+
+    <td width="357" bgcolor="#CCFFCC" height="13"><font size="2">	DISCL_FOREGROUND + DISCL_EXCLUSIVE</font></td>     
+  
+    <td width="477" bgcolor="#CCFFCC" height="13"><font size="2">		自アプリがアクティブ時のみ取得し、自アプリがデバイスを占有する</font></td>  
+  
+  </tr>  
+  
+  <tr>  
+  
+    <td width="357" bgcolor="#CCFFCC" height="13"><font size="2">	DISCL_FOREGROUND + DISCL_NONEXCLUSIVE</font></td>     
+  
+    <td width="477" bgcolor="#CCFFCC" height="13"><font size="2">	自アプリがアクティブ時のみ取得し、他アプリもデバイスを使える</font></td>  
+  
+  </tr>  
+  
+  <tr>  
+  
+    <td width="357" bgcolor="#CCFFCC" height="13"><font size="2">	DISCL_BACKGROUND + DISCL_EXCLUSIVE</font></td>     
+  
+    <td width="477" bgcolor="#CCFFCC" height="13"><font size="2">		自アプリがアクティブでないときも取得し、自アプリがデバイスを占有する</font></td>  
+  
+  </tr>  
+  
+  <tr>  
+  
+    <td width="357" bgcolor="#CCFFCC" height="14"><font size="2">	<b>	DISCL_BACKGROUND + DISCL_NONEXCLUSIVE</b></font></td>     
+  
+    <td width="477" bgcolor="#CCFFCC" height="14"><font size="2">	<b>	自アプリがアクティブでないときも取得し、他アプリもデバイスを使える</b></font></td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>また<b>DISCL_NOWINKEY</b>というフラグがあり、<b>Windowsキーを無効にできたりします</b>。<br>  
+  
+（ただしアクションマッピングを設定しないとダメ。<br>  
+  
+　単純に自アプリアクティブ時に禁止させるだけなら<b>DISCL_FOREGROUND</b>にすればよい。)<br>
+
+<br>
+
+今回はどのアプリがアクティブであっても情報を取得したくかつ占有する必要はないので、<br>
+
+（マウスの場合<b>DISCL_BACKGROUND+DISCL_EXCLUSIVE</b>はできない。ジョイスティック専用）<br>
+
+<b>DISCL_BACKGROUND + DISCL_NONEXCLUSIVE</b>を指定します。</p> 
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'イベントバッファの準備
+
+        Dim diprop As DxVBLibA.DIPROPLONG
+
+        With diprop
+
+            .lHow = DIPH_DEVICE
+
+            .lObj = 0
+
+            .lData = MAX_BUFFERSIZE
+
+        End With
+
+        mDIDevM.SetProperty &quot;DIPROP_BUFFERSIZE&quot;, diprop</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>マウスの動きはバッファモードで取得したいので情報を蓄積するバッファを準備します。<br>
+
+これは動作情報を全て取得したいときに使用します。<br>
+
+（バッファからあふれない限り全ての反応を取得できます。まぁマウスなら１０もあれば十分じゃないのかな？）<br>
+
+<br>
+
+設定はDIPROPLONG型の各メンバに値をセットして<br>
+
+<b>SetProperty</b>メソッドで設定します。<br>
+
+<b>SetProperty</b>メソッドの第一引数&quot;<b>DIPROP_BUFFERSIZE</b>&quot;がバッファサイズであること示してます。<br>
+
+ちなみに<b>SetProperty</b>メソッドではジョイスティックのデッドゾーン(無効範囲)などの設定も行えます。<br>
+
+また<b>GetProperty</b>メソッドで細分度(マウスホイールの感度)などを取得できます。<br>
+
+マウスホイールは上回転/下回転って情報だけでなく、<br>
+
+<b><font color="#0000FF">ゆっくりまわしたかいきおいよく回したかも取得できる</font></b>んですよ。<br>
+
+（マウスが対応していれば。Intellimouseとかだとかなり細かくとれます）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>        'イベントの設定
+
+        mhEventM = mDX.CreateEvent(Me)
+
+        mDIDevM.SetEventNotification mhEventM</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>イベントを受け取るイベントハンドラを登録します。<br>
+
+ここで先に説明した「Implements DirectXEvent8」が関係してきます。<br>     
+  
+<b>DirectXEvent8</b>インターフェースとして振舞うことが可能となったForm1(Me)を引数に<br>  
+  
+DirectXオブジェクトの<b>CreateEvent</b>メソッドを呼び出してイベントハンドルを取得し、<br>  
+  
+<b>DirectInputDevice</b>オブジェクトの<b>SetEventNotification</b>メソッドに渡します。<br>  
+  
+これによりマウス用<b>DirectInputDevice</b>オブジェクト(mDIDevM)で<br>  
+  
+情報(マウスの動き)を取得したときForm1の<b><font size="4" color="#0000FF">DirectXEvent8_DXCallback</font></b><font size="4" color="#0000FF">が呼び出されるようになる</font>訳です。</p>  
+  
+<p>またCreateEventメソッドの戻り値はイベントを識別するためのハンドルになります。<br>  
+  
+マウスの動きがあったときも、キーボードの状態が変化したときも同じ<b>DirectXEvent8_DXCallback</b>が呼び出されるようにするので<br>  
+  
+どちらのイベントが起きたのかの判断に必要になります。<br>  
+  
+このためフォームレベルで宣言した変数に退避しておくわけです。<br>  
+  
+</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>'チェックボックスを使用可能にする
+
+        chk_Mouse.Enabled = True
+
+    End If
+
+</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>ここまででマウスの捕捉準備が整ったのでチェックボックス(「Mouse」ボタン)を使用可能にします。</p>  
+  
+<p>　</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>'キーの準備
+
+    Set mDIDevK = mDI.CreateDevice(&quot;GUID_SysKeyboard&quot;)
+
+    If mDIDevK Is Nothing Then
+
+        MsgBox &quot;Keyboard用DirectInputDeviceオブジェクトが生成できません。&quot;
+
+    Else
+
+        '入力データ形式の設定
+
+        mDIDevK.SetCommonDataFormat DIFORMAT_KEYBOARD
+
+        
+
+        '強調レベルの設定
+
+        mDIDevK.SetCooperativeLevel Me.hWnd, DISCL_BACKGROUND Or DISCL_NONEXCLUSIVE
+
+        
+
+        'イベントの設定
+
+        mhEventK = mDX.CreateEvent(Me)
+
+        mDIDevK.SetEventNotification mhEventK
+
+        
+
+        'チェックボックスを使用可能にする
+
+        chk_Keyboard.Enabled = True
+
+    End If
+
+</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>キーの捕捉準備も基本的に同じです。<br>  
+  
+違うところはDirectInputオブジェクトの<b>CreateDevice</b>メソッドにキーボードであることの&quot;<b>GUID_SysKeyboard</b>&quot;を指定することと<br>  
+  
+<b>SetCommonDataFormat</b>での入力データ形式を「<b>DIFORMAT_KEYBOARD</b>」にすること<br>  
+  
+キーの入力はバッファリングモードを使わないためにその部分の処理がないことです。</p>  
+  
+<hr>  
+  
+<p>次に捕捉を開始します。<br>  
+  
+｢Mouse｣ボタンと｢Keyboard｣ボタン（どっちもチェックボックス）がクリックされたときに<br>  
+  
+その状態によってアクセス権の取得と破棄を行います。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre><font color="#0000FF">'マウス情報へのアクセスON/OFF
+
+Private Sub chk_Mouse_Click()
+
+    Select Case chk_Mouse.Value
+
+        Case 0  'OFF
+
+            If Not mDIDevM Is Nothing Then
+
+                'アクセス権の破棄
+
+                mDIDevM.Unacquire
+
+            End If
+
+            
+
+        Case 1  'ON
+
+            If Not mDIDevM Is Nothing Then
+
+                'アクセス権の取得
+
+                mDIDevM.Acquire
+
+            End If
+
+    End Select
+
+End Sub</font>
+
+
+
+
+
+<font color="#FF0000">'キーボード情報へのアクセスON/OFF
+
+Private Sub chk_Keyboard_Click()
+
+    Select Case chk_Keyboard.Value
+
+        Case 0  'OFF
+
+            If Not mDIDevK Is Nothing Then
+
+                'アクセス権の破棄
+
+                mDIDevK.Unacquire
+
+            End If
+
+            
+
+        Case 1  'ON
+
+            If Not mDIDevK Is Nothing Then
+
+                'アクセス権の取得
+
+                mDIDevK.Acquire
+
+            End If
+
+    End Select
+
+End Sub</font>
+
+</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>マウスやキーボードの動き情報を取得するためには「<b>アクセス権</b>」を取得する必要があります。<br>  
+  
+アクセス権を取得するには<b>DirectInputDevice</b>オブジェクトの<b>Acquire</b>メソッドを呼び出します。<br>  
+  
+破棄するには<b>Unacquire</b>メソッドを呼びます。</p>  
+  
+<hr>  
+  
+<p>アクセス権を取得したのちマウスを動かしたりキーを押したりすると<br>  
+  
+<b>DirectXEvent8_DXCallback</b>が呼び出されます。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre><font size="1">'DirectXイベント処理
+
+Private Sub DirectXEvent8_DXCallback(ByVal eventid As Long)
+
+    
+
+    Dim x As Long
+
+    
+
+    Select Case eventid
+
+<font color="#0000FF">        Case mhEventM       'マウスのイベント
+
+            
+
+            '情報を取得するバッファを準備
+
+            Dim devdata(MAX_BUFFERSIZE - 1) As DxVBLibA.DIDEVICEOBJECTDATA
+
+            
+
+            '情報を取得
+
+            Dim datacnt As Long
+
+            On Error Resume Next
+
+            datacnt = mDIDevM.GetDeviceData(devdata, DIGDD_DEFAULT)
+
+            If Err Then
+
+                '情報が取得できなかった
+
+                datacnt = 0
+
+                
+
+                '再度アクセス権を要求
+
+                mDIDevM.Acquire
+
+            End If
+
+            On Error GoTo 0
+
+            
+
+            '取得した情報の表示
+
+            For x = 0 To datacnt - 1
+
+                With devdata(x)
+
+                    Select Case .lOfs
+
+                        Case DIMOFS_X
+
+                            AddMessage .lSequence, &quot;X Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_Y
+
+                            AddMessage .lSequence, &quot;Y Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_Z
+
+                            AddMessage .lSequence, &quot;Z Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON0
+
+                            AddMessage .lSequence, &quot;Button0 &quot; + Format$(.lData)
+
+                    
+
+                        Case DIMOFS_BUTTON1
+
+                            AddMessage .lSequence, &quot;Button1 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON2
+
+                            AddMessage .lSequence, &quot;Button2 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON3
+
+                            AddMessage .lSequence, &quot;Button3 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON4
+
+                            AddMessage .lSequence, &quot;Button4 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON5
+
+                            AddMessage .lSequence, &quot;Button5 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON6
+
+                            AddMessage .lSequence, &quot;Button6 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON7
+
+                            AddMessage .lSequence, &quot;Button7 &quot; + Format$(.lData)
+
+                            
+
+                        Case Else
+
+                            AddMessage .lSequence, &quot;Unknown &quot; + Format$(.lData)
+
+                    End Select
+
+                End With
+
+            Next</font>
+
+            
+
+            
+
+<font color="#FF0000">        Case mhEventK       'キーボードのイベント
+
+            
+
+            '全てのキー状態を取得
+
+            Dim keystate As DIKEYBOARDSTATE
+
+            mDIDevK.GetDeviceStateKeyboard keystate
+
+            
+
+            'キー状態を表示
+
+            Dim keymsg As String
+
+            For x = 0 To 255
+
+                If keystate.Key(x) And &amp;H80 Then
+
+                    keymsg = keymsg + Right$(&quot;0&quot; + Hex$(x), 2) + &quot; &quot;
+
+                End If
+
+            Next
+
+            If keymsg &lt;&gt; &quot;&quot; Then
+
+                AddMessage 0, &quot;KeyDown &quot; + keymsg</font>
+
+<font color="#FF0000">            End If
+
+</font>            
+
+    End Select
+
+    
+
+End Sub</font><font size="2">
+
+</font></pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>まず<b>DirectXEvent8_DXCallback</b>の引数eventIDの値がmhEventMなのかmhEventKなのかを判定します。<br>  
+  
+これは先に説明していますが、マウスによるイベントなのかキーボードによるイベントなのかを判断するためです。</p>  
+  
+<p>マウスによるイベントの処理から説明していきます。</p>  
+  
+<table border="1" width="100%">  
+  
+  <tr>  
+  
+    <td width="100%" bgcolor="#FFFFFF">  
+  
+<pre>	Case mhEventM       'マウスのイベント
+
+            
+
+            '情報を取得するバッファを準備
+
+            Dim devdata(MAX_BUFFERSIZE - 1) As DxVBLibA.DIDEVICEOBJECTDATA
+
+</pre>  
+  
+    </td>  
+  
+  </tr>  
+  
+</table>  
+  
+<p>マウスの状態に変化(マウスが動かされた、または、ボタンが押された、またはボタンが離された)があったことは<br>  
+  
+この<b>DirectXEvent8_DXCallback</b>が呼び出されたことでわかりました。<br>  
+  
+ですので、次はどのような変化があったのかを取得することになります。<br>  
+  
+これには二通りの方法があります。<br>  
+  
+　（１）バッファの内容を見る<br>
+
+　（２）現在のマウスの状態を取得する<br>
+
+<br>
+
+（２）の方が簡単と言えば簡単なのですが、本当に今現在の状態しかわかりません。<br>
+
+つまり、ボタンを押してすぐ離したなんて場合、「現在の状態」ではボタンがすでに離されている可能性があるので<br>
+
+押されたのかどうかがわからない訳です。<br>
+
+しかし（１）の方法ならば前回のイベント発生から今回までの間に起きた変化がすべてバッファに蓄積されているので、<br>
+
+それを順に調べていくことで確実に変化を検知できる訳です。<br>
+
+ボタンの押下では問題になりにくいですが、マウスカーソルを自前で描画するようなゲームだと<br>
+
+動きの変化を取得できないと反応が悪く感じられちゃうんですよね。<br>
+
+（なおバッファリングモードでも取得をしないでおくとバッファがあふれます。）</p>
+
+<p>で、ここでは（１）の方法をとります。<br>
+
+（そのために準備段階でバッファリングを行うことを指定しているので^^;）<br>
+
+で、変化内容を取得するためのバッファ領域を確保するのが上のコードになります。<br>
+
+<b>DIDEVICEOBJECTDATA</b>型の配列を先の<b>SetProperty</b>メソッドで指定したバッファサイズの分だけ確保します。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>		'情報を取得
+
+            Dim datacnt As Long
+
+            On Error Resume Next
+
+            datacnt = mDIDevM.GetDeviceData(devdata, DIGDD_DEFAULT)
+
+            If Err Then
+
+                '情報が取得できなかった
+
+                datacnt = 0
+
+                
+
+                '再度アクセス権を要求
+
+                mDIDevM.Acquire
+
+            End If
+
+            On Error GoTo 0
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>バッファ領域を確保しましたら蓄積されている変化情報を読み込みます。<br>
+
+読み込みは<b>GetDeviceData</b>メソッドで行います。<br>
+
+戻り値として格納された件数が返されます。</p>
+
+<p>なお取得に失敗した場合は再度アクセス権を取得するようにします。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>		'取得した情報の表示
+
+            For x = 0 To datacnt - 1
+
+                With devdata(x)
+
+                    Select Case .lOfs
+
+                        Case DIMOFS_X
+
+                            AddMessage .lSequence, &quot;X Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_Y
+
+                            AddMessage .lSequence, &quot;Y Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_Z
+
+                            AddMessage .lSequence, &quot;Z Move &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON0
+
+                            AddMessage .lSequence, &quot;Button0 &quot; + Format$(.lData)
+
+                    
+
+                        Case DIMOFS_BUTTON1
+
+                            AddMessage .lSequence, &quot;Button1 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON2
+
+                            AddMessage .lSequence, &quot;Button2 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON3
+
+                            AddMessage .lSequence, &quot;Button3 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON4
+
+                            AddMessage .lSequence, &quot;Button4 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON5
+
+                            AddMessage .lSequence, &quot;Button5 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON6
+
+                            AddMessage .lSequence, &quot;Button6 &quot; + Format$(.lData)
+
+                            
+
+                        Case DIMOFS_BUTTON7
+
+                            AddMessage .lSequence, &quot;Button7 &quot; + Format$(.lData)
+
+                            
+
+                        Case Else
+
+                            AddMessage .lSequence, &quot;Unknown &quot; + Format$(.lData)
+
+                    End Select
+
+                End With
+
+            Next
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>変化情報は<b>DIDEVICEOBJECTDATA</b>型の配列に順番に格納されますので<br>
+
+あとはこれを先頭から見ていくことになります。<br>
+
+<b>DIDEVICEOBJECTDATA</b>型は下記のように定義されています。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#CCFFCC">
+
+<pre>Type DIDEVICEOBJECTDATA 
+
+	<font color="#0000FF">lData</font> As Long 			'変化情報
+
+	<font color="#0000FF">lOfs</font> As Long 			'変化の種類
+
+	<font color="#0000FF">lSequence</font> As Long 		'通番
+
+	<font color="#0000FF">lTimeStamp</font> As Long 		'タイムスタンプ
+
+	<font color="#0000FF">lUserData</font> As Long 		'ユーザーデータ
+
+End Type</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>まずlOfsの内容をみてどんな変化があったのかを調べます。<br>
+
+マウスの場合CONST_DIMOUSEOFS型の数値が入っています。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#CCFFCC">
+
+<pre>DIMOFS_BUTTON0～DIMOFS_BUTTON7	ボタンの変化
+
+DIMOFS_X					横の動き
+
+DIMOFS_Y					縦の動き
+
+DIMOFS_Z					ホイールの動き</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>変化の内容はlDataに格納されています。<br>
+
+縦横及びホイールの動きは<b><font color="#0000FF">変化量</font></b>が格納されています。<br>
+
+ボタンは<font color="#0000FF">押された場合128、離された場合0</font>となります。</p>
+
+<p>ここで注意が必要なのは<font color="#0000FF">それぞれが同時に変化した場合</font>です。<br>
+
+つまり斜めに移動した場合、縦の変化分、横の変化分がそれぞれ一件ずつバッファに格納されます。<br>
+
+移動をそのまま見てしまうと、真横に移動してからすぐに上下に移動された場合(実際には無理だろうけどｗ)と<br>
+
+斜めに移動されたのが区別できなくなってしまうんですね。<br>
+
+<br>
+
+そこでlSequenceの値が重要になります。<br>
+
+つまり<font color="#0000FF" size="4">この値が同じである場合、それは同時に変化した</font>ということになります。<br>
+
+サンプルプログラムではそこまでみてなくて、<br>
+
+バッファの内容をそのままリストボックスに追加しています。<br>
+
+（リストボックスへの追加はAddMessage関数で行っていますが詳細は省略します。）</p>
+
+<p>以上でマウスの動きを捕捉できます。</p>
+
+<p>　</p>
+
+<p>次にキーボードの処理です。</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>	Case mhEventK       'キーボードのイベント
+
+            
+
+            '全てのキー状態を取得
+
+            Dim keystate As DIKEYBOARDSTATE
+
+            mDIDevK.GetDeviceStateKeyboard keystate
+
+            
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>キーボードの場合はバッファリングモードを用いていないので<br>
+
+いきなり現在のキーボードの内容を取得しています。（もちろんバッファリングモードでも可能です。）<br>
+
+<b>GetDeviceStateKeyboard</b>メソッドで現在の状態を取得します。<br>
+
+<b>DIKEYBOARDSTATE</b>型の変数は<b>Key</b>という256個分の配列で<br>
+
+各キーの状態が<b>0：押されていない</b>、<b>128:押されている</b>で表現されます。<br>
+
+どのキーが0～255のどこなのかは<b>CONST_DIKEYFLAGS</b>列挙型で定義されています。</p>
+
+<p>なおDirectInputではテンキーの内容はNumLockの内容にかかわらずに取得できます。<br>
+
+またCapsやNumLockなどはトグル状態(一回押すと128、もう一回押すと0)で取得できます。<br>
+
+この辺は<b><font size="5">実際に押してみて表示してみればわかる</font></b>でしょう。<br>
+
+複数のキーが同時に押されているときはそれぞれのキーの要素が128になります。<br>
+
+（なお組み合わせによってはわからなかったりしますが、これは昔からのPCの仕様です。<br>
+
+　A,B,C,D,E,Fの同時押しは判断できません。指つりそうになるしねｗ）</p>
+
+<table border="1" width="100%">
+
+  <tr>
+
+    <td width="100%" bgcolor="#FFFFFF">
+
+<pre>'キー状態を表示
+
+            Dim keymsg As String
+
+            For x = 0 To 255
+
+                If keystate.Key(x) And &amp;H80 Then
+
+                    keymsg = keymsg + Right$(&quot;0&quot; + Hex$(x), 2) + &quot; &quot;
+
+                End If
+
+            Next
+
+            If keymsg &lt;&gt; &quot;&quot; Then
+
+                AddMessage 0, &quot;KeyDown &quot; + keymsg
+
+            End If
+
+</pre>
+
+    </td>
+
+  </tr>
+
+</table>
+
+<p>サンプルプログラムでは押されているキーのコード(正確にはインデックス番号)を16進で表示しています。</p>
+
+<p>以上がキーボードの状態取得になります。（バッファリングモードより楽でしょ^^）</p>
+
+<hr>
+
+<p>このようにDirectInputを使うことにより多少の制限はありますが、<br>
+
+他アプリでのマウスやキーボードの入力をVBで簡単に取得することができるのです。</p>
+
+<p>簡単にまとめますと、下記のようになります。</p>
+
+<p>①DirectXオブジェクトを生成</p>
+
+<p>②DirectInputオブジェクトを生成（<font color="#FF00FF"><b>DirectX</b></font>オブジェクトの<font color="#FF00FF"><b>DirectInputCreate</b></font>メソッド）</p>
+
+<p>③取得するデバイス毎に<font color="#FF00FF"><b>DirectInputDevice</b></font>オブジェクトを生成(<font color="#FF00FF"><b>DirectInput</b></font>オブジェクトの<font color="#FF00FF"><b>CreateDevice</b></font>メソッド)</p>
+
+<p>④入力データ形式の設定(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>SetCommonDataFormat</b></font>メソッド)</p>
+
+<p>⑤強調レベルの設定(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>SetCooperativeLevel</b></font>メソッド)</p>
+
+<p>⑥必要があればバッファリングモードの設定(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>SetProperty</b></font>メソッド)</p>
+
+<p>⑦イベントの設定(<font color="#FF00FF"><b>DirectX</b></font>オブジェクトの<font color="#FF00FF"><b>CreateEvent</b></font>メソッド、及び、<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトのSetEventNotificationメソッド)</p>
+
+<p>⑧アクセス権の取得(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>Acquire</b></font>メソッド)</p>
+
+<p>⑨DirectXEvent8_DXCallbackの引数(イベントハンドル)のチェック</p>
+
+<p>⑩バッファリングモード時にはバッファを確保して蓄積データの取得(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>GetDeviceData</b></font>メソッド)<br>
+
+　または直接状態の取得(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>GetDeviceStateKeyboard</b></font>メソッドなど)</p>
+
+<p>⑪終了時にはアクセス権の破棄とオブジェクトの開放(<b><font color="#FF00FF">DirectInputDevice</font></b>オブジェクトの<font color="#FF00FF"><b>Unacquire</b></font>メソッド)<br>
+
+</p>
+
+<p>こうやって並べてみるとかなり面倒そうに感じますが、<br>
+
+やってみるとそんなに難しくはないです。</p>
+
+<p>DirectInputを使う方法はフックと違い、<b><font color="#0000FF" size="4">情報の取得</font></b>のみが可能です。<br>
+
+フックの場合は情報の変更まで可能ですのでより強力いえますが、<br>
+
+フックプロシジャを用意しなければならないなどDirectInputより面倒ですね。</p>
+
+<p>DirectInputを使えばVBだけで汎用マウスジェスチャやマウスボタンにキー割り当てなどを行うツールが作れると思います。<br>
+
+（<strike>時間があったら作ってみようかな。<br>
+
+&nbsp;MicrosoftのIntelliMouse 4.0に付属するIntelliPoint5.0が<font color="#0000FF" size="5">あまりにもダメ</font>だし^^;</strike>;）<br>
+&nbsp;バージョンアップしたら<b>すんごく使えるように</b>なりました。^^）</p>  
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+<p>VB.Net(VB2005)から使用する方法は、別ページになってます。<br>
+上のメニューからどうぞ。<br>
+</p>
+
+
+
+</body>
+
+
+
+</html>
+

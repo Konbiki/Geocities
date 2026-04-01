@@ -1,0 +1,314 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<p><b>DirectShow関係4(クラスライブラリ)</b></p>
+
+<p><b>2．サンプル</b></p>
+
+
+
+<hr>
+
+
+
+<hr>
+
+<p>Play<br>
+　動画ファイルを再生するサンプルです。<br>
+　起動するとフォーム内で動画を再生させます。</p>
+
+<p><img border="0" src="dshowd3.jpg" width="300" height="300"><img border="0" src="dshowd13.jpg" width="308" height="310"></p>
+
+<p>最も基本的なサンプルで、全ソースを下記に示します。<br>
+これだけで動画を再生できます。</p>
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <font size="2"><font COLOR="#0000ff">Option</font> <font COLOR="#0000ff">Explicit</font>      
+      <font COLOR="#0000ff">On<br>     
+      Option</font> <font COLOR="#0000ff">Strict</font> <font COLOR="#0000ff">On</font><font COLOR="#008000"><br>     
+      <br>     
+      '//////////////////////////////////////////////////////////////<br>     
+      'DShowLib　サンプル　Play<br>     
+      '・フォーム内で動画を再生させるサンプルです。<br>     
+      '・フォームのサイズに合わせて、動画の縦横比を保ちながらサイズを調整します。<br>     
+      '//////////////////////////////////////////////////////////////<br>     
+      <br>     
+      'DirectShowクラスライブラリ</font><font COLOR="#0000ff"><br>     
+      Imports</font> DShowLib<font COLOR="#008000"><br>     
+      <br>     
+      '--------------------------------------------------------------</font><font COLOR="#0000ff"><br>     
+      <br>     
+      Public</font> <font COLOR="#0000ff">Class</font> Form1<br>     
+      <font COLOR="#008000"><br>     
+      'モジュール変数<br>     
+      </font><font COLOR="#0000ff">Private</font> mGrp <font COLOR="#0000ff">As</font>      
+      IGraphBuilder <font COLOR="#008000">'グラフ<br>     
+      <br>     
+      &nbsp;&nbsp;&nbsp; 'フォームロード時<br>     
+      </font><font color="#008000">&nbsp;&nbsp;&nbsp; </font><font COLOR="#0000ff">Private</font>      
+      <font COLOR="#0000ff">Sub</font> Form1_Load(<font COLOR="#0000ff">ByVal</font>      
+      sender <font COLOR="#0000ff">As</font> System.Object, <font COLOR="#0000ff">ByVal</font>      
+      e <font COLOR="#0000ff">As</font> System.EventArgs) <font COLOR="#0000ff">Handles</font>      
+      <font COLOR="#0000ff">MyBase</font>.Load<br>     
+      <br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'グラフ生成</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mGrp      
+      = CreateNewGraph()<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'グラフ構築</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>mGrp.RenderFile(<font COLOR="#800000">&quot;<a href="file:///C:/Program%20Files/Microsoft%20Platform%20SDK/Samples/Multimedia/DirectShow/Media/Video/ruby.avi">C:\Program      
+      Files\Microsoft Platform      
+      SDK\Samples\Multimedia\DirectShow\Media\Video\ruby.avi</a>&quot;</font>)<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'フォーム内で縦横比を保って再生するように設定</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>SetVideoRendererOwner(mGrp,      
+      <font COLOR="#0000ff">Me</font>, RendererScale.KeepAspect)<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; '再生開始</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>GraphPlay(mGrp)<br>     
+      <font COLOR="#0000ff"><br>     
+      </font><font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp; </font><font COLOR="#0000ff">End</font>      
+      <font COLOR="#0000ff">Sub<br>     
+      </font><font COLOR="#008000"><br>     
+      <br>     
+      &nbsp;&nbsp;&nbsp; 'フォームクローズ時<br>     
+      </font><font color="#008000">&nbsp;&nbsp;&nbsp; </font><font COLOR="#0000ff">Private</font>      
+      <font COLOR="#0000ff">Sub</font> Form1_FormClosed(<font COLOR="#0000ff">ByVal</font>      
+      sender <font COLOR="#0000ff">As</font> <font COLOR="#0000ff">Object</font>,      
+      <font COLOR="#0000ff">ByVal</font> e <font COLOR="#0000ff">As</font>      
+      System.Windows.Forms.FormClosedEventArgs) <font COLOR="#0000ff">Handles</font>      
+      <font COLOR="#0000ff">Me</font>.FormClosed<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'グラフの停止</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>GraphStop(mGrp)<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'グラフの破棄</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>ReleaseInstance(mGrp)<br>     
+      <font COLOR="#0000ff"><br>     
+      &nbsp;&nbsp;&nbsp; End</font> <font COLOR="#0000ff">Sub<br>     
+      </font><font COLOR="#008000"><br>     
+      <br>     
+      &nbsp;&nbsp;&nbsp; 'フォームサイズ変更時<br>     
+      </font><font color="#008000">&nbsp;&nbsp;&nbsp; </font><font COLOR="#0000ff">Private</font>      
+      <font COLOR="#0000ff">Sub</font> Form1_Resize(<font COLOR="#0000ff">ByVal</font>      
+      sender <font COLOR="#0000ff">As</font> <font COLOR="#0000ff">Object</font>,      
+      <font COLOR="#0000ff">ByVal</font> e <font COLOR="#0000ff">As</font>      
+      System.EventArgs) <font COLOR="#0000ff">Handles</font> <font COLOR="#0000ff">Me</font>.Resize<br>     
+      <font COLOR="#008000"><br>     
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'フォーム内で縦横比を保って再生するように再設定</font><br>     
+      <font color="#008000">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </font>SetVideoRendererOwner(mGrp,      
+      <font COLOR="#0000ff">Me</font>, RendererScale.KeepAspect)<br>     
+      <font COLOR="#0000ff"><br>     
+      &nbsp;&nbsp;&nbsp; End</font> <font COLOR="#0000ff">Sub<br>     
+      &nbsp;<br>     
+      End</font> <font COLOR="#0000ff">Class<br>     
+      </font></font>     
+    </td>     
+  </tr>     
+</table>     
+     
+<p>　</p>
+
+
+
+<hr>
+
+<p>PlayLoop<br>
+　動画ファイルを連続再生(ループ再生)させるサンプルです。<br>
+　起動するとフォーム内で動画が連続再生されます。<br>
+<br>
+<img border="0" src="dshowd15.jpg" width="308" height="310"><br>
+<br>
+　PlayLoopStart/PlayLoopStopを使えば動画や音楽を連続再生させることができます。<br>
+　サンプルでは再生回数をカウントする為デリゲートを指定していますが、<br>
+　単に連続再生させるだけなら指定する必要はありません。<br>
+　　例）簡単な連続再生<br>
+　　　　mLoopThread = PlayLoopStart(mGrp)<br>        
+　ループはメディアの終端まで再生位置が進んだら先頭に戻すという処理を行っているだけです。<br>
+<br>
+　注意しなければならないのは、この終端チェック(ループ監視)を別スレッドで行っているため<br>
+　グラフを停止させたあとすぐにグラフを破棄するような場合監視スレッドが終了するの待つ必要がある点です。<br>
+　具体的はPlayLoopStartの戻り値(System.Threading.Threadです)を指定しPlayLoopStopを呼び出すか、<br>
+&nbsp; 戻り値のJoinメソッドを呼び出します。<br>     
+<br>     
+　すぐにグラフを破棄しないのであれば、この処理は必須ではありません。(PlayLoopの戻り値を保存しておく事も不要)<br>
+<br>
+　あと、逆転再生とかには対応してません。</p>
+
+
+
+<hr>
+
+<p><br>
+Seek<br>
+　再生位置の取得／設定を行うサンプルです。<br>
+　現在の再生位置をスライドバーで表現し、<br>
+　スライドバーで再生位置を変更できます。<br>
+<img border="0" src="dshowd4.jpg" width="300" height="300"><img border="0" src="dshowd16.jpg" width="308" height="310"></p>
+
+
+
+<p>　メディアの再生時間はIMediaPositionのget_Durationで取得します。<br>
+　現在の再生位置の取得はget_CurrentPositionメソッドで行い、<br>
+　put_CurrentPositionメソッドで再生位置を設定します。</p>
+
+
+
+<hr>
+
+<p>CameraView<br>
+　カメラ(ビデオキャプチャデバイス)の映像を表示します。<br>
+<br>
+<img border="0" src="dshowd17.jpg" width="308" height="310"><br>
+<br>
+　このサンプルでは、利用可能なカメラをコンソールに出力した後、<br>
+　はじめに見つかったカメラを使用しライブ映像をウィンドウ内に表示ます。<br>
+<br>
+　複数のカメラがある場合(TVキャプチャボードとUSBカメラがつながってるとかの場合)、<br>
+<br>
+　<font size="2">camflt = 
+CreateFilter(DSConst.FilterCategoryGUID.CLSID_VideoInputDeviceCategory, 0) <font COLOR="#008000">'0番のフィルタ使用</font></font><br> 
+<br>
+　上記の　0　の部分を変えてください。<br>
+</p>
+
+
+
+<hr>
+
+<p>CameraSelect<br>
+　カメラをユーザに選択させてライブ映像を表示します。
+</p>
+<p><img border="0" src="dshowd18.jpg" width="377" height="156"><br>
+<br>
+　基本的にCameraViewと同じです。<br>
+　カメラの選択に<b><font size="3">DSUSelectCameraDialog</font></b>を使用しています。<br>
+　<br>
+　なおカメラを選択するときにフィルタやピンのプロパティページを表示させて変更することができます。<br>
+　また出力フォーマットを選択することもできます。</p>
+
+
+
+<hr>
+
+<p>Snap<br>
+　カメラから静止画を取得します。<br>
+　左側の映像をクリックすると静止画を取得し右側に表示します。<br>
+<br>
+<img border="0" src="dshowd19.jpg" width="720" height="351"><br>
+<br>
+　掲示板やメールで一番リクエストの多い「やりたい事」のサンプルです。(^^;<br>
+　VB6では取得したビットマップを表示するのにちょっと面倒でしたが、<br>
+　.Netでは便利な機能(Bitmapのコンストラクタ)があるので<br>
+　とってもすっきりしたものになってます。<br>
+</p>
+
+
+
+<hr>
+
+<p>Snap２<br>
+　カメラから静止画を取得します。<br>
+　「Snap」と同様に、左側の映像をクリックすると静止画を取得し右側に表示します。<br>
+<br>
+<img border="0" src="dshowd20.jpg" width="720" height="351"><br>
+<br>
+　動作＆見た目は「Snap」と同様ですが、<br>
+　グラフ生成と静止画の取得に「FrameCapture」クラスを使用していますので<br>
+　コードがだいぶ短くなっています。<br>
+</p>
+
+
+
+<hr>
+
+<p>Capture<br>
+　カメラからの映像を動画ファイルに保存します。<br>
+　保存するときのエンコード方式を選択できます。<br>
+<br>
+<img border="0" src="dshowd21.jpg" width="431" height="139"><br>
+<br>
+　InfinitePinTeeフィルタを用いて<br>
+　録画しながらプレビュー表示も行っています。<br>
+　またエンコーダが指定された場合そのフィルタの追加などをやっています。<br>
+　この為グラフ生成が複雑に見えるかもしれませんが、<br>
+　やってるのはフィルタをグラフに入れて、ピンを探して、くっつける<br>
+　という操作を何度もやってるだけです。<br>
+</p>
+
+
+
+<hr>
+
+<p>SoundWave<br>
+　音声ファイルを再生し、再生位置の波形をリアルタイムで表示します。<br>
+<img border="0" src="dshowd11.jpg" width="533" height="246"><br>
+<img border="0" src="dshowd22.jpg" width="544" height="260"><br>
+<br>
+　「DirectShow関係3」のサンプル集で公開しているやつをDShowLibを使って作ってみたやつです。<br>
+　(DCTモジュールとか多くを流用しています。グラエコ風とかちょっと遊び心を加えてます。)</p>
+
+
+
+<hr>
+
+<p>Telop<br>
+　VMR9の機能を使い、動画に静止画を合成して再生します。<br>
+　サンプルソースでははじめに見つかったカメラの映像に<br>
+　現在時刻を表す時計を(半透明で)重ねて表示します。<br>
+<br>
+<img border="0" src="dshowd23.jpg" width="656" height="303">
+</p>
+
+
+
+<hr>
+
+<p>StreamBuffer<br>
+　ストリームバッファを用いてカメラからの入力をファイルに保存します。<br>
+　常にプレビューを表示させておきながら任意のタイミングで録画を開始/終了できます。<br>
+　サンプル「Capture」でも同様のことが可能ですが、<br>
+　いちいちグラフを作り直す必要があるため、見た目的に美しくありません。<br>
+　ストリームバッファを使うとキャプチャするグラフと保存するグラフが分離しているので<br>
+　プレビュー表示はずっと表示したままになり、なんとなくスマートに見えます。
+</p>
+
+
+
+<p><img border="0" src="dshowd24.jpg" width="295" height="201">
+</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

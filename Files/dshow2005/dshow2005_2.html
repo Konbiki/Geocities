@@ -1,0 +1,655 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>DirectShow関係3(VB2005)</b></h1>
+
+<hr>
+
+<h2>２．基本操作</h2>
+
+
+
+<p>VB2005でDirectShowを扱うときの基本操作をまとめて説明したいと思います。<br>
+なお重複しちゃいますので<b>基本的な用語については説明していません</b>。<br>
+初めての方はお手数ですが<b>VB6+DirectShow</b>のページを参照してください。<br>
+本当に申し訳ないのですが、<br>
+　フィルタ<br>
+　フィルタグラフ<br>
+　フィルタグラフマネージャ<br>
+　ピン<br>
+　GRAPHEDIT<br>
+ぐらいは何のことかわかっているものとして説明しています。<br>
+（VB6+DirectShowのページを参照して頂ければわかると思います）</p>
+
+
+
+<hr>
+
+<p>DirectShowの各インターフェースや定数、<br>
+及び、COM関係の関数やインタフェース類は定義は省略してます。（ながくなるんで）<br>
+定義は、下記からダウンロードできるDirectShowDefine.vbで行っています。<br>
+（私が使っているモジュールです。自由に流用して下さい。間違いがあったら教えてね）<br>
+<br>
+<a href="DirectShowDefine.lzh">DirectShowDefine.vb</a>（DirectShow関係の定義モジュール）<br>
+<br>
+以降のコードを試すときはこのモジュールをプロジェクトに入れてください。<br>
+<br>
+使い方<br>
+　①上のDirectShowDefine.vbをダウンロードする。<br>
+<br>
+　②新たなプロジェクトを作成する。(Windowsアプリケーションとか)<br>
+<br>
+　③メニュー「プロジェクト」－「既存項目の追加」で<br>
+　　ダウンロードしたDirectShowDefine.vbを選択する。<br>
+<br>
+　④サンプルコードをコピペ<br>
+　　サンプルファイルのパスとかはこちらの環境になっているので<br>
+　　自分の環境に合わせてください。<br>
+<br>
+　⑤実行<br>
+<br>
+なお、以下サンプルコードには<b><font color="#FF0000">エラー処理つーもんが完璧に欠如</font></b>しています。<br>
+まずインターフェースの定義で&lt;PreserveSig()>をつけてますのでメソッドでエラーが発生しても停止しません。<br>
+エラーをTry～Catchでトラップしたい場合は外したほうがいいかもしれません。<br>
+この辺は好みでお願いします。</p>
+
+
+
+<hr>
+
+<h3>２．１　フィルタグラフマネージャの作成</h3>
+
+
+
+<p>「<a href="dshow2005_1.html">１．動画の再生</a>」ですでにやってますが、<br>
+もう一度フィルタグラフマネージャの作成とIGraphBuilderインターフェースの取得方法について説明します。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+Imports System
+Imports System.Runtime.InteropServices
+
+Public Class Form1
+    Private mGrp As IGraphBuilder
+
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+
+        'クラスＩＤ準備
+        Dim FilterGraphManagerClassID As Guid
+        FilterGraphManagerClassID = New Guid(&quot;{E436EBB3-524F-11CE-9F53-0020AF0BA770}&quot;)
+
+        'タイプの取得
+        Dim FilterGraphManagerType As Type
+        FilterGraphManagerType = Type.GetTypeFromCLSID(FilterGraphManagerClassID)
+
+        'フィルタグラフマネージャのインスタンス作成
+        Dim FilterGraphManagerObject As Object
+        FilterGraphManagerObject = Activator.CreateInstance(FilterGraphManagerType)
+
+        'IGraphBuilderインターフェースの取得
+        mGrp = CType(FilterGraphManagerObject, IGraphBuilder)
+
+    End Sub
+End Class
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>この方法は<b>Activator</b>クラスの<b>CreateInstance</b>メソッドを使用してインスタンスを作成しています。<br>
+<br>
+手順としては、<br>
+　　①フィルタグラフマネージャのクラスＩＤを用意<br>
+　　②フィルタグラフマネージャの型（タイプ）を定義<br>
+　　③Activatorでインスタンス作成<br>
+　　④CTypeでIGraphuBuilderインターフェースを取得<br>
+となります。<br>
+<br>
+また、フィルタグラフマネージャのクラスＩＤの文字列は<br>
+DirectShowDefine.vb内でGUIDString.CLSID_FilterGraphとして定義しています。</p>
+
+
+
+<hr>
+
+<h3>２．２　フィルタグラフマネージャの破棄</h3>
+
+
+
+<p>「１．動画の再生」では明記していませんが、いくつもの動画を再生する場合、<br>
+フィルタグラフマネージャのインスタンスを明示的に破棄した方がいいです。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+'フィルタグラフマネージャの破棄
+        Marshal.ReleaseComObject(mGrp)
+        mGrp = nothing
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>自動的に破棄してくれるのを待つよりも、<br>
+もう使わないグラフは<b>Marshal.ReleaseComObject</b>メソッドを使って明示的に破棄しましょう。<br>
+でないと再生ウィンドウがいつまでも残ったりします。</p>
+
+
+
+<hr>
+
+<h3>２．３　動画ファイルからグラフを作成</h3>
+
+
+
+<p>動画ファイルからグラフを作成する、つまり、動画を再生する準備は下記の様に<br>
+IGraphBuilderインターフェースのRenderFileメソッドを使います。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+'動画ファイルからグラフ作成
+        mGrp.RenderFile(&quot;E:\media\src320x240.avi&quot;, &quot;&quot;)
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>第二引数は空文字列""でOKです。<br>
+</p>
+
+
+
+<hr>
+
+<h3>２．４　グラフの再生／停止</h3>
+
+
+
+<p>グラフを再生／停止するには、IMediaControlインターフェースを使用します。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+	'IMediaControlインターフェースの取得
+	Dim ctl As IMediaControl
+	ctl = CType(mGrp, IMediaControl)
+
+	'再生
+	ctl.Run()
+
+	'停止
+	ctl.Run()
+
+	'一時停止
+	ctl.Pause()
+
+	'リフレッシュ後停止
+	ctl.StopWhenReady()
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>Run/Stop/Pauseは動作がわかりやすいと思いますが、<br>
+<b>StopWhenReady</b>は若干わかりにくいかもしれません。<br>
+これは<font color="#0000FF">Pause後にStop状態</font>にする操作と考えればいいかもしれません。<br>
+<br>
+これが必要になるのは停止中に再生位置を変更したときです。<br>
+グラフが停止している状態ではストリームが流れませんので<br>
+現在時刻(再生カレント位置)を変更しても表示はかわりません。<br>
+このため、一旦Pause状態にしてストリームにデータを流し<br>
+その後に停止状態にする必要があります。<br>
+StopWhenReadyはこの操作を自動的に(かつ非同期的に)やってくれるメソッドです。<br>
+</p>
+
+
+
+<hr>
+
+<h3>２．５　フィルタの列挙</h3>
+
+
+
+<p>VB6の時はDLLを作ってやる方法を紹介してましたが、<br>
+VB2005では便利なクラスがあるのでDLLなどを使わないでも<br>
+カテゴリ毎のフィルタを列挙することができます。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+Private Sub Button6_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button6.Click
+
+        'システムデバイス列挙子のタイプ準備
+        Dim devenumtype As Type
+        devenumtype = Type.GetTypeFromCLSID(New Guid(GUIDString.CLSID_SystemDeviceEnum))
+
+        'システムデバイス列挙子のインスタンス作成
+        Dim devenumobj As Object
+        devenumobj = Activator.CreateInstance(devenumtype)
+
+        'ICreateDevEnumインターフェース取得
+        Dim devenum As ICreateDevEnum
+        devenum = CType(devenumobj, ICreateDevEnum)
+        devenumobj = Nothing
+
+        'EnumMonikerの作成
+        Dim emon As ComTypes.IEnumMoniker = Nothing
+        devenum.CreateClassEnumerator(New Guid(GUIDString.FilterCategory.CLSID_VideoInputDeviceCategory), emon, 0)
+
+        '列挙
+        Dim mon(0) As ComTypes.IMoniker
+        Dim fc As IntPtr
+        Do While emon.Next(1, mon, fc) = 0  '列挙が失敗するまでループ
+
+            'プロパティバッグへのバインド
+            Dim propbagobj As Object = Nothing
+            mon(0).BindToStorage(Nothing, Nothing, New Guid(GUIDString.Interface.IID_IPropertyBag), propbagobj)
+            Dim propbag As IPropertyBag
+            propbag = CType(propbagobj, IPropertyBag)
+            propbagobj = Nothing
+
+            '名称取得
+            Dim fnameobj As Object = Nothing, fname As String
+            propbag.Read(&quot;FriendlyName&quot;, fnameobj, 0)
+            fname = CStr(fnameobj)
+
+            'クラスID取得
+            Dim cidobj As Object = Nothing, cid As String
+            propbag.Read(&quot;CLSID&quot;, cidobj, 0)
+            cid = CStr(cidobj)
+
+            '表示
+            System.Console.WriteLine(cid.ToString + &quot;:&quot; + fname)
+
+            '後片付け
+            Marshal.ReleaseComObject(mon(0))
+            mon(0) = Nothing
+            Marshal.ReleaseComObject(propbag)
+            propbag = Nothing
+
+        Loop
+
+        '列挙終了
+        Marshal.ReleaseComObject(emon)
+        emon = Nothing
+        Marshal.ReleaseComObject(devenum)
+        devenum = Nothing
+
+End Sub
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>ちょっと長くて面倒かもしれませんが、一応これでカテゴリ内のフィルタ名とクラスIDを取得できます。<br>
+(このサンプルプログラムではコンソールにフィルタ名称とクラスIDを出力しています。)<br>
+「EnumMonikerの作成」のところで、CreateClassEnumeratorメソッドに与えているクラスIDがカテゴリのクラスIDになります。<br>
+これは「DirectX C++ヘルプ」の「フィルタ カテゴリ」のところに一覧があります。<br>      
+（実際の値が定義されているヘッダファイルも記載されてます）<br>
+一応DirectShowDefine.vb内でGUIDString.FilterCategoryに定義してあります。</p>
+
+
+
+<hr>
+
+<h3>２．６　グラフにフィルタに追加</h3>
+
+
+
+<p>グラフにフィルタを追加するには、フィルタの実態(インスタンス)を作成し<br>
+IGraphBuilderインターフェースのAddFilterメソッドでグラフに追加します。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+        'クラスＩＤ準備
+        Dim FilterClassID As Guid
+        FilterClassID = New Guid(GUIDString.Filter.CLSID_Filewriter)
+
+        'タイプの取得
+        Dim FilterType As Type
+        FilterType = Type.GetTypeFromCLSID(FilterClassID)
+
+        'フィルタグラフマネージャのインスタンス作成
+        Dim FilterObject As Object
+        FilterObject = Activator.CreateInstance(FilterType)
+
+        'グラフにフィルタを追加
+        mGrp.AddFilter(CType(FilterObject, IBaseFilter), &quot;FilteWriter&quot;)
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>上の例では、フィルタの設定をなにもしていませんが、<br>
+目的のフィルタのインターフェースを定義すればそのフィルタ特有のメソッドにアクセスできます。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+        'IFileSinkFilterインターフェース取得
+        Dim SinkFilter As IFileSinkFilter
+        SinkFilter = CType(FilterObject, IFileSinkFilter)
+
+        '出力ファイル名の指定
+        SinkFilter.SetFileName(&quot;c:\iran.avi&quot;, Nothing)
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p><b>IFileSinkFilter</b>は動画を保存するときのファイル名を指定するインタフェースです。<br>
+DirectShowDefine.vb内で定義されています。</p>
+
+
+
+<hr>
+
+<h3>２．７　グラフをGRFファイルに保存</h3>
+
+
+
+<p>GRAPHEDITで開けるGRFファイルとしてグラフを保存するには下記の様にします。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+		'呼び出し元
+		Try
+			'保存
+			SaveGraphFile( mGrp, &quot;d:\iran.grf&quot;)
+		Catch ex As Exception
+			'保存失敗
+		End Try</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+    Private sub SaveGraphFile(ByRef Grp As IGraphBuilder, ByVal Filename As String)
+        Dim ps As IPersistStream = Nothing
+        Dim grpstr As IStorage = Nothing
+        Dim strm As System.Runtime.InteropServices.ComTypes.IStream = Nothing
+
+        Try
+            'IPresistStreamインターフェースの取得
+            ps = CType(Grp, IPersistStream)
+
+            'IStorageオブジェクト作成
+            Win32API.StgCreateDocfile(Filename, STGM.STGM_CREATE Or STGM.STGM_TRANSACTED Or STGM.STGM_READWRITE Or STGM.STGM_SHARE_EXCLUSIVE, 0, grpstr)
+
+            'ストリーム作成
+            grpstr.CreateStream(&quot;ActiveMovieGraph&quot;, STGM.STGM_WRITE Or STGM.STGM_CREATE Or STGM.STGM_SHARE_EXCLUSIVE, 0, 0, strm)
+
+            'グラフ保存
+            ps.Save(strm, True)
+
+            'ファイルに出力
+            grpstr.Commit(0)
+
+        Catch ex As Exception
+            '失敗
+            Throw
+
+        Finally
+            '不要となったオブジェクトの開放
+            
+            If Not ps Is Nothing Then
+                Marshal.ReleaseComObject(ps)
+                ps = Nothing
+            End If
+
+            If Not grpstr Is Nothing Then
+                Marshal.ReleaseComObject(grpstr)
+                grpstr = Nothing
+            End If
+
+            If Not strm Is Nothing Then
+                Marshal.ReleaseComObject(strm)
+                strm = Nothing
+            End If
+        End Try
+
+    End Sub</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>そのまんまコピペして使えるように、関数の形にしています。<br>
+基本的には「DirectX 9.0 プログラマーズ リファレンス」に記載されているまんまです。<br>      
+VB2005に合わせてエラー処理を変えたにすぎません。</p>
+
+
+
+<hr>
+
+<h3>２．８　GRFファイルからグラフの読み込み</h3>
+
+
+
+<p>GRAPHEDITで開けるGRFファイルからグラフを読み込むには下記の様にします。</p>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+		'呼び出し元
+		Try
+			'保存
+			SaveGraphFile( mGrp, &quot;d:\iran.grf&quot;)
+		Catch ex As Exception
+			'保存失敗
+		End Try</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF">
+      <pre>
+    Private Function LoadGraphFilte(ByVal Filename As String) As IGraphBuilder
+
+        'クラスＩＤ準備
+        Dim FilterGraphManagerClassID As Guid
+        FilterGraphManagerClassID = New Guid(GUIDString.CLSID_FilterGraph)
+
+        'タイプの取得
+        Dim FilterGraphManagerType As Type
+        FilterGraphManagerType = Type.GetTypeFromCLSID(FilterGraphManagerClassID)
+
+        'フィルタグラフマネージャのインスタンス作成
+        Dim FilterGraphManagerObject As Object
+        FilterGraphManagerObject = Activator.CreateInstance(FilterGraphManagerType)
+
+        'IGraphBuilderインターフェースの取得
+        Dim newgrp As IGraphBuilder
+        newgrp = CType(FilterGraphManagerObject, IGraphBuilder)
+
+        Dim grpstr As IStorage = Nothing
+        Dim ps As IPersistStream = Nothing
+        Dim strm As System.Runtime.InteropServices.ComTypes.IStream = Nothing
+        Try
+            '(普通の)ファイルであるかチェック
+            If Win32API.StgIsStorageFile(Filename) &lt;&gt; 0 Then Return Nothing
+
+            'IStorageオブジェクト作成
+            Win32API.StgOpenStorage(Filename, Nothing, STGM.STGM_TRANSACTED Or STGM.STGM_READ Or STGM.STGM_SHARE_DENY_WRITE, Nothing, 0, grpstr)
+
+            'IPresistStreamインターフェースの取得
+            ps = CType(newgrp, IPersistStream)
+
+            'ストリーム作成
+            grpstr.OpenStream(&quot;ActiveMovieGraph&quot;, Nothing, STGM.STGM_READ Or STGM.STGM_SHARE_EXCLUSIVE, 0, strm)
+
+            '読込
+            ps.Load(strm)
+
+        Catch ex As Exception
+            '失敗
+
+            If Not newgrp Is Nothing Then
+                Marshal.ReleaseComObject(newgrp)
+                newgrp = Nothing
+            End If
+
+            Throw
+
+        Finally
+            '不要となったオブジェクトの開放
+            
+            If Not grpstr Is Nothing Then
+                Marshal.ReleaseComObject(grpstr)
+                grpstr = Nothing
+            End If
+
+            If Not ps Is Nothing Then
+                Marshal.ReleaseComObject(ps)
+                ps = Nothing
+            End If
+
+            If Not strm Is Nothing Then
+                Marshal.ReleaseComObject(strm)
+                strm = Nothing
+            End If
+
+        End Try
+
+        Return newgrp
+    End Function
+</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>これも関数の形にしています。<br>
+前半はグラフの作成なので２．１とかぶります。</p>
+
+
+
+<hr>
+
+<h3>２．９　プロパティページの表示</h3>
+
+
+
+<p>フィルタやピンのプロパティページを表示するには下記の様にします。</p>
+
+
+
+<table border="1" width="100%" height="282">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF" height="276">
+      <pre>
+        'ISpecifyPropertyPagesインターフェース取得
+        Dim sp As ISpecifyPropertyPages
+        sp = CType(<font color="#0000FF">FilterObject</font>, ISpecifyPropertyPages)
+
+        'プロパティページ情報取得
+        Dim ca As CAUUID
+        sp.GetPages(ca)
+
+        'プロパティページ表示
+        Win32API.OleCreatePropertyFrame( _
+            Me.Handle, 0, 0, _
+            &quot;プロパティページのキャプション&quot;, 1, _
+            FilterObject, ca.cElems, ca.pElems, 0, 0, Nothing)
+
+        '後始末
+        If ca.pElems &lt;&gt; IntPtr.Zero Then
+            Marshal.FreeCoTaskMem(ca.pElems)
+        End If</pre>
+    </td>
+  </tr>
+</table>
+
+
+
+<p>上のサンプルコード中では「<b>FilterObject</b>」とフィルタのオブジェクトのような名前にしていますが、<br>
+ここにはピンのオブジェクトでもフィルタのオブジェクトでもかまいません。</p>
+
+
+
+<hr>
+
+<p><a href="index.html">上に戻る</a></p>
+
+<p>　</p>
+
+</body>
+
+
+
+</html>
+

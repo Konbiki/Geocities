@@ -1,0 +1,175 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>DirectShow関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<p><b>DirectShow関係</b><b>4(クラスライブラリ)</b></p>
+
+<p><b>０．はじめに</b></p>
+
+
+
+<hr>
+
+<p>◎概要<br>
+<br>
+私がVB2005/VB2008からDirectShowを使用するとき使用しているクラスライブラリです。<br>
+DirectShow関連COMインターフェース等の定義とユーティリティモジュールから構成されてます。<br>
+一応、WindowsXP/WindowsVistaで動作を確認しています。<br>
+（Windows2000は動作確認できる環境がなくなりました・・・）<br>
+<br>
+ただし、インターフェースについては全てを定義している訳ではなく、<br>
+自分が良く使うものから定義や機能を加えていってます。<br>
+<br>
+ユーティリティモジュールはグラフ構築や操作、情報取得など汎用的に使用できる関数で構成されます。<br>
+なおグラフをラップするような便利でパワフルなクラス等はありません。<br>
+（まぁそういうのは自分で好きなように作りたいって人が多いと思いますので^^;）<br>
+基本的な機能の集まりみたいなもんです。
+<br>
+
+</p>
+
+
+
+<hr>
+
+<p>◎ダウンロード／インストール<br>
+
+</p>
+
+
+
+<table border="1" width="802">
+  <tr>
+    <td width="194" align="center">リリース</td>
+    <td width="194" align="center">ライブラリ</td>
+    <td width="216" align="center">ソース</td>
+    <td width="478" align="center">備考</td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2007/04/14</p>
+    </td>
+    <td width="194"><a href="DShowLib20070414.zip">DShowLib20070414.zip</a></td>
+    <td width="216"><a href="DShowLib20070414SRC.zip">DShowLib20070414SRC.zip</a></td>
+    <td width="478">新規<br>
+    </td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2007/04/17</p>
+    </td>
+    <td width="194"><a href="DShowLib20070414.zip">DShowLib20070417.zip</a></td>
+    <td width="216"><a href="DShowLib20070414SRC.zip">DShowLib20070417SRC.zip</a></td>
+    <td width="478">FindPin等のバグ修正<br>
+    </td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2007/11/21</p>
+    </td>
+    <td width="194"><a href="DShowLib20071121.zip">DShowLib20071121.zip</a></td>
+    <td width="216"><a href="DShowLib20071121SRC.zip">DShowLib20071121SRC.zip</a></td>
+    <td width="478">LoadGraphFileのバグ修正、<br>
+      StreamBuffer関係追加</td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2008/07/5</p>
+    </td>
+    <td width="194"><a href="DShowLib20080705.zip">DShowLib20080705.zip</a></td>
+    <td width="216"><a href="DShowLib20080705SRC.zip">DShowLib20080705SRC.zip</a></td>
+    <td width="478">FrameCaptureクラスに<br>
+      既存グラフを指定できるメソッド(AttachGraph)を追加<br>
+    </td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2008/07/9</p>
+    </td>
+    <td width="194"><a href="DShowLib20080709.zip">DShowLib20080709.zip</a></td>
+    <td width="216"><a href="DShowLib20080709SRC.zip">DShowLib20080709SRC.zip</a></td>
+    <td width="478">IVMRMixerControl9インターフェースを追加<br>
+    </td>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2010/06/25</p>
+    </td>
+    <td width="194"><a href="DShowLib20100625.zip">DShowLib20100625.zip</a></td>
+    <td width="216"><a href="DShowLib20100625SRC.zip">DShowLib20100625SRC.zip</a></td>
+    <td width="478">IAMCrossbarインターフェースを追加、Captureのバグ修正<br>
+  </tr>
+  <tr>
+    <td width="194">
+      <p align="center">2011/06/12</p>
+    </td>
+    <td width="194"><a href="DShowLib20110612.zip">DShowLib20110612.zip</a></td>
+    <td width="216"><a href="DShowLib20110612SRC.zip">DShowLib20110612SRC.zip</a></td>
+    <td width="478">ストリームバッファ関連の追加<br>
+  </tr>
+</table>
+
+<p><br>
+上記のライブラリ版アーカイブ中の<b>DShowLib.dll</b>及び<b>DShowLib.xml</b>を適当なフォルダに展開してください。<br>
+<br>
+ソース版アーカイブにはクラスライブラリの全ソースとサンプルプログラムが含まれます。<br>
+これらのものは、個人使用だろうが商用だろうが関係なく、<br>
+ソースファイルも含めて自由に流用して頂いて結構です。(GPL等ではありません)<br>
+（DShowLib.dllをアプリに添付して配布してもかまいませんし、<br>
+　ソース中で使えそうな所があったら気軽にコピペして頂いて結構です。）<br>
+ただし、問題があっても当方は責任は持ちません。
+
+</p>
+
+
+
+<p>　
+
+</p>
+
+
+
+<hr>
+
+<p>◎使用方法（参照設定）<br>
+<br>
+DirectShowを使用したいプロジェクトにて「<b>DShowLib.dll</b>」を参照設定して下さい。<br>
+具体的には、メニュー「プロジェクト」－「参照の追加」－「参照」タブで<br>
+「<b>DShowLib.dll</b>」を指定します。(VB2005/VB2008の場合)<br>
+<br>
+これで名前空間「<b>DShowLib</b>」が使用可能となります。<br>
+必要に応じてImportsするなりして使って下さい。<br>
+
+</p>
+
+
+
+<hr>
+
+<p><a href="../index.html">上に戻る</a></p>
+
+
+
+</body>
+
+
+
+</html>
+

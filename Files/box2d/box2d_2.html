@@ -1,0 +1,705 @@
+
+
+<head>
+<title></title>
+</head>
+
+<body bgcolor="#CCFFCC">
+
+<h2>2.Box2Dの使い方&nbsp;</h2>
+<hr>
+<p>
+
+覚書として、Box2D(Box2DLib.DLL)の使い方を書いておきます。&nbsp;<br>
+<br>
+
+Box2Dを使う場合、大雑把に下記のよう流れになります。&nbsp;<br>
+<br>
+<i> 
+
+１．シミュレーションワールドを生成する&nbsp;<br>
+
+２．シミュレーションワールドに物体を配置する&nbsp;<br>
+　２．１　ボディ定義を作成&nbsp;<br>
+　２．２　ボディを生成&nbsp;<br>
+　２．３　シェイプ定義を作成&nbsp;<br>
+　２．４　ボディにシェイプを追加&nbsp;<br>
+　２．５　ボディの塊情報を生成&nbsp;<br>
+
+３．シミュレーションを行う&nbsp;<br>
+　３．１　計算&nbsp;<br>
+　３．２　表示&nbsp;</i></p>
+<p>
+
+<br>
+
+
+下記はBox2Dのドキュメントに載っている HelloWorld を   
+VBに移植したコードになります。<br> 
+&nbsp;このコードを元に使い方を説明します。&nbsp;</p> 
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2" COLOR="#0000ff">Option</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">Explicit</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">On<br> 
+      Option</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Strict</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">On<br> 
+      <br> 
+      </font><font SIZE="2" COLOR="#008000">'Box2DLib.DLLを参照設定する必要があります。<br> 
+      </font><font SIZE="2" COLOR="#0000ff">Imports</font><font SIZE="2">  
+      Box2DLib<br> 
+      <br> 
+      </font><font SIZE="2" COLOR="#0000ff">Module</font><font SIZE="2"> Module1<br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'これはBox2Dを使用してシミュレーションを構築/実行するシンプルな使用例です。<br> 
+      &nbsp;&nbsp;&nbsp; '地面を表す箱と落下する小さな箱を作成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Sub</font><font SIZE="2">  
+      Main()<br> 
+      </font><font SIZE="2" COLOR="#008000"><br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドのサイズを定義します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      worldAABB </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2AABB<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">worldAABB.lowerBound.Set(-100.0F,  
+      -100.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">worldAABB.upperBound.Set(100.0F,  
+      100.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;<br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'重力ベクタを定義します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      gravity </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2Vec2(0.0F, -10.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'物体はスリープ状態になれることとします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      doSleep </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Boolean</font><font SIZE="2">  
+      = </font><font SIZE="2" COLOR="#0000ff">True<br> 
+      <br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'ワールドオブジェクトを生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'(ワールドオブジェクトは物体を保持してシミュレーションを行います。）<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      world </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2World(worldAABB, gravity, doSleep)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      groundBodyDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> bb2BodyDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">groundBodyDef.position.Set(0.0F,  
+      -10.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を引数にCreateBodyを呼び出すと<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドに地面を表す物体(ボディー)が追加されます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      graoundBody </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(groundBodyDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面物体用の形状定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      groundShapeDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2PolygonDef<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'半分のサイズを指定して形状定義を「ボックス」にします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">groundShapeDef.SetAsBox(50.0F,  
+      10.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面物体(ボディー)に形状(ボックスのシェイプ)を与えます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">graoundBody.CreateShape(groundShapeDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下する箱物体を位置を指定して生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      bodyDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2BodyDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">bodyDef.position.Set(0.0F,  
+      4.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Dim</font><font SIZE="2">  
+      body </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(bodyDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下箱物体の形状定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      shapedef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2PolygonDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.SetAsBox(1.0F,  
+      1.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'箱の密度(density)を0以外にします。これにより移動するようになります。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.density  
+      = 1.0F<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'摩擦係数(friction)を設定します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.friction  
+      = 0.3F<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下箱物体に形状を与えます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">body.CreateShape(shapedef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'塊属性を現在の形状から自動生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">body.SetMassFromShapes()<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションの準備として、<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'タイムステップを60Hz、繰り返し回数を10にします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'通常はこれで十分です。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      timeStep </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Single</font><font SIZE="2">  
+      = 1.0F / 60.0F<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Dim</font><font SIZE="2">  
+      iterations </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">  
+      = 10<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'６０回繰り返します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">For</font><font SIZE="2">  
+      i </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">  
+      = 0 </font><font SIZE="2" COLOR="#0000ff">To</font><font SIZE="2"> 59<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'シミュレーションを１ステップ行います。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'一般的にタイムステップと繰り返し回数は固定にした方がよいです。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">world.Step(timeStep, iterations)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'落下箱物体の位置と角度を出力します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> position </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Vec2 = body.GetPosition()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      Dim</font><font SIZE="2"> angle </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">Single</font><font SIZE="2"> =  
+      body.GetAngle()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;{0,3:f}  
+      {1,3:f} {2,3:f}&quot;</font><font SIZE="2">, position.x, position.y,  
+      angle)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Next<br> 
+      <br> 
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Sub<br> 
+      <br> 
+      End</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Module<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+<br> 
+ 
+ 
+このコードは、四角の箱が地面に落下するだけのシュミレーションです。&nbsp;<br> 
+下記は、HellowWorldを視覚化した画像です。   
+(サンプルのSimpleDrawの画像です)&nbsp;<br> 
+<br> 
+<img border="0" src="box2d_1.jpg" width="461" height="284"><br> 
+<br> 
+ 
+これを頭に描いておくとコードが読みやすいかも。&nbsp;</p> 
+<hr> 
+<p> 
+ 
+ 
+０．参照設定&nbsp;<br> 
+<br> 
+まずは Box2DLib.DLL を参照設定します。&nbsp;<br> 
+メニュー「プロジェクト」－「参照の追加」－「参照」タブをクリックし、&nbsp;<br> 
+「Box2DLib.DLL」を選択します。&nbsp;</p> 
+<hr> 
+<p> 
+ 
+ 
+１．シミュレーションワールドを生成する&nbsp;<br> 
+</p> 
+<table border="1" width="100%"> 
+  <tr> 
+    <td width="100%" bgcolor="#FFFFFF"><font COLOR="#0000ff" size="2"><br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドのサイズを定義します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      worldAABB </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2AABB<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">worldAABB.lowerBound.Set(-100.0F,  
+      -100.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">worldAABB.upperBound.Set(100.0F,  
+      100.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;<br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'重力ベクタを定義します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      gravity </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2Vec2(0.0F, -10.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'物体はスリープ状態になれることとします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      doSleep </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Boolean</font><font SIZE="2">  
+      = </font><font SIZE="2" COLOR="#0000ff">True<br> 
+      <br> 
+      &nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'ワールドオブジェクトを生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'(ワールドオブジェクトは物体を保持してシミュレーションを行います。）<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      world </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2World(worldAABB, gravity, doSleep)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+ワールドの広さ、重力ベクトル、スリープ状態の有無を指定して&nbsp;<br> 
+シミュレーションワールド(bb2World)を生成します。&nbsp;<br> 
+<br> 
+ 
+ワールドサイズはbb2AABB(AABBってのは axis aligned bounding box の意味。多分)&nbsp;<br> 
+というクラスのメンバに下限上限を設定して指定します。&nbsp;<br> 
+ワールドのサイズを越えた物体は、各種計算が行われなくなりますので&nbsp;<br> 
+十分な広さを指定するようにして下さい。&nbsp;<br> 
+（ただし、広すぎると遅くなったり精度が落ちたりするかもしれません。）&nbsp;<br> 
+HelloWorldでは (-100,-100)～(100,100)の範囲を指定しています。&nbsp;<br> 
+<br> 
+ 
+重力ベクトルは重力による移動方向と大きさです。&nbsp;<br> 
+通常は真下に働く様にするので、   
+ｘ＝０、ｙ＝負数の値(上では-10.0f)を用います。&nbsp;<br> 
+当然ですが、正の値を指定すれば物体は上に引っ張られますし、&nbsp;<br> 
+絶対値が大きい程、強い力となります。&nbsp;<br> 
+<br> 
+ 
+bb2Worldのコンストラクタ第三引数は   
+物体がスリープ状態となることを許すかどうかの値です。&nbsp;<br> 
+スリープ状態になることを許せば無駄な計算が省かれて   
+パフォーマンスアップが望めますが、&nbsp;<br> 
+場合によっては不自然な状態(物体が浮くとか)が発生するかもしれません。&nbsp;</p> 
+<hr> 
+<p> 
+ 
+ 
+２．シミュレーションワールドに物体を配置する&nbsp;<br> 
+<br> 
+ 
+シミュレーションワールドの物体は「ボディ」と呼ばれる単位で処理されます。&nbsp;<br> 
+で、ボディの形状を決めるのが「シェイプ」で、&nbsp;<br> 
+通常の物体(ボディ)は一つ又は複数のシェイプで構成されます。&nbsp;<br> 
+<br> 
+ 
+シミュレーションワールドに物体(ボディ)を追加するには、&nbsp;<br> 
+「ボディ定義(bb2BodyDef)」というオブジェクトを生成し&nbsp;<br> 
+そのボディ定義をワールドに渡してワールドに追加してもらいます。&nbsp;<br> 
+ 
+シェイプも同様に「シェイプ定義(bb2PolygonDef/bb2CircleDef)」を生成し、&nbsp;<br> 
+ボディに対してシェイプを作成(追加)することで物体を定義していきます。&nbsp;<br> 
+<br> 
+ 
+流れとしては、 　<br>
+　ボディ定義作成 → ボディ作成 → (シェイプ定義作成 → シェイプ作成)×複数&nbsp;<br> 
+となります。&nbsp;<br> 
+（シェイプを作ってからボディを作成するのではなく、初めにワールドにボディを生成(登録)し、<br> 
+その登録済みにボディに対してシェイプを追加していきます。）&nbsp;<br> 
+<br> 
+ 
+HelloWorldでは、地面を表す位置固定の大きい四角と   
+落下する小さい四角が配置されてます。 　<br>
+<br>
+<br>
+２．１　ボディ定義を作成&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を生成します。<br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      groundBodyDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2"> bb2BodyDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">groundBodyDef.position.Set(0.0F,  
+      -10.0F)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+ボディ定義は bb2BodyDef のインスタンスを生成し、各種プロパティで位置や角度を指定します。 
+　<br>
+<br>
+<br>
+２．２　ボディを生成&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を引数にCreateBodyを呼び出すと<br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドに地面を表す物体(ボディー)が追加されます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      graoundBody </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(groundBodyDef)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+ボディ定義を引数にワールド(bb2World)の CreateBody メソッドを呼び出すと&nbsp;<br> 
+ワールド内にボディが生成され戻り値として返されます。 
+　<br>
+<br>
+<br>
+２．３　シェイプ定義を作成&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を引数にCreateBodyを呼び出すと<br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドに地面を表す物体(ボディー)が追加されます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      graoundBody </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(groundBodyDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面物体用の形状定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      groundShapeDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2PolygonDef<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'半分のサイズを指定して形状定義を「ボックス」にします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">groundShapeDef.SetAsBox(50.0F,  
+      10.0F)<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+シェイプは多角形か円形のいずれかになります。&nbsp;<br> 
+多角形シェイプは bb2PolygonDef、   
+円形シェイプは bb2CircleDef で定義を作成します。&nbsp;<br> 
+<br> 
+ 
+多角形(bb2PolygonDef)の場合、   
+頂点数をvertexCountプロパティで指定し、&nbsp;<br> 
+verticesプロパティで各頂点の座標を指定します。&nbsp;<br> 
+矩形であればSetAsBoxメソッドを使えば楽に定義できます。&nbsp;<br> 
+<br> 
+shapedef.SetAsBox(1.0F, 1.0F)&nbsp;<br> 
+ 
+上記は、下記と等価です。&nbsp;<br> 
+ 
+        shapedef.vertexCount = 4&nbsp;<br> 
+        shapedef.vertices(0).Set(-1.0F, -1.0F)&nbsp;<br> 
+        shapedef.vertices(1).Set(1.0F, -1.0F)&nbsp;<br> 
+        shapedef.vertices(2).Set(1.0F, 1.0F)&nbsp;<br> 
+        shapedef.vertices(3).Set(-1.0F, 1.0F)&nbsp;<br> 
+ 
+ちなみに、凹型の形状は許されません。&nbsp;<br> 
+<br> 
+ 
+SetAsBox(1.0F, 1.0F)は中心が真ん中で、   
+縦横に2.0の大きさがある矩形が定義されます。&nbsp;<br> 
+第三引数に中心位置、第四引数に回転角度を指定することでもできます。&nbsp;<br> 
+ 
+また、シェイプ定義では形状だけでなく、   
+密度や摩擦係数なども指定できます。   
+ 
+        '<br> 
+箱の密度(density)を0以外にします。これにより移動するようになります。&nbsp;<br> 
+<br> 
+ 
+密度(density)に0を指定すると、固定の物体となります。<br> 
+&nbsp;大きい値の方が「重い物体(の部分)」となります。&nbsp;<br> 
+摩擦係数(friction)はそのまんまで説明いらないでしょう。&nbsp;<br> 
+このサンプルでは使われてませんが、   
+さらに反発係数(restitution)というプロパティもあり、&nbsp;<br> 
+衝突したときの挙動が変わってきます。&nbsp;<br> 
+<br> 
+ちなみに<br> 
+密度のデフォルト値は 0(固定)、&nbsp;<br> 
+摩擦係数のデフォルトは 0.2(ちょっとすべすべ？）、&nbsp;<br> 
+反発係数のデフォルトは 0.0(反発せず)、&nbsp;<br> 
+となっているみたいです。 　<br>
+<br>
+<br>
+２．４　ボディにシェイプを追加&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面用の物体定義を引数にCreateBodyを呼び出すと<br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションワールドに地面を表す物体(ボディー)が追加されます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      graoundBody </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(groundBodyDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面物体用の形状定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      groundShapeDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2PolygonDef<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'半分のサイズを指定して形状定義を「ボックス」にします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">groundShapeDef.SetAsBox(50.0F,  
+      10.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'地面物体(ボディー)に形状(ボックスのシェイプ)を与えます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">graoundBody.CreateShape(groundShapeDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下する箱物体を位置を指定して生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      bodyDef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2BodyDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">bodyDef.position.Set(0.0F,  
+      4.0F)<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Dim</font><font SIZE="2">  
+      body </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Body = world.CreateBody(bodyDef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下箱物体の形状定義を生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      shapedef </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">New</font><font SIZE="2">  
+      bb2PolygonDef<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.SetAsBox(1.0F,  
+      1.0F)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'箱の密度(density)を0以外にします。これにより移動するようになります。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.density  
+      = 1.0F<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'摩擦係数(friction)を設定します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">shapedef.friction  
+      = 0.3F<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'落下箱物体に形状を与えます。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">body.CreateShape(shapedef)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'塊属性を現在の形状から自動生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">body.SetMassFromShapes()<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+ボディのCreateShapeメソッドに作成したシェイプ定義を渡せば   
+そのボディにシェイプが登録されます。 　<br>
+<br>
+<br>
+２．５　ボディの塊情報を生成&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2">
+      <br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'塊属性を現在の形状から自動生成します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2">body.SetMassFromShapes()<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+<br> 
+ 
+ボディへのシェイプ追加が終了したら、   
+SetMassFromShapesメソッドを呼び出して&nbsp;<br> 
+塊属性(mass propertiesの直訳)を計算させます。&nbsp;<br> 
+これをやらないと、衝突とかの判定が正しく行われないようです。&nbsp;<br> 
+（なにをやってるのかはわかりません。&nbsp;<br> 
+　ソースを見ると重心の計算や衝突判定用円の半径計算とかしてるみたいですが）&nbsp;<br>
+<br>
+
+地面部分のボディでは SetMassFromShapes を行っていませんが、&nbsp;<br> 
+これは・・・なぜかはわかりませんｗ。&nbsp;<br> 
+多分密度が0で、単純な図形だからでしょう(^^;&nbsp;<br> 
+<br> 
+ 
+以上の様な手順を繰り返し、   
+ワールドに物体(ボディ)を必要な分だけ生成します。&nbsp;</p> 
+<hr> 
+<p> 
+ 
+ 
+３．シミュレーションを行う&nbsp;<br> 
+３．１　計算&nbsp;</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'シミュレーションの準備として、<br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'タイムステップを60Hz、繰り返し回数を10にします。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'通常はこれで十分です。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2">  
+      timeStep </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Single</font><font SIZE="2">  
+      = 1.0F / 60.0F<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Dim</font><font SIZE="2">  
+      iterations </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">  
+      = 10<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'６０回繰り返します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">For</font><font SIZE="2">  
+      i </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">  
+      = 0 </font><font SIZE="2" COLOR="#0000ff">To</font><font SIZE="2"> 59<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'シミュレーションを１ステップ行います。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'一般的にタイムステップと繰り返し回数は固定にした方がよいです。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">world.Step(timeStep, iterations)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'落下箱物体の位置と角度を出力します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> position </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Vec2 = body.GetPosition()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      Dim</font><font SIZE="2"> angle </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">Single</font><font SIZE="2"> =  
+      body.GetAngle()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;{0,3:f}  
+      {1,3:f} {2,3:f}&quot;</font><font SIZE="2">, position.x, position.y,  
+      angle)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Next<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+ワールドに配置された物体の位置や角度を更新(計算)するには、&nbsp;<br> 
+bb2WorldのStepメソッドを呼び出します。&nbsp;<br> 
+Stepメソッドの引数は、「経過させる時間」と「処理の繰り返し回数」になります。&nbsp;<br> 
+<br> 
+ 
+「経過させる時間」を大きくすれば、   
+それだけ一回のStepメソッド呼出時に動く量が多くなり、&nbsp;<br> 
+小さくすればちょっとしか動きません。   
+1/60あたりがお勧めだそうです。&nbsp;<br> 
+ちなみに、描画とのからみを考えて、   
+フレームレートと連動させればよりスマートじゃね？&nbsp;<br> 
+って思うかもしれませんが、   
+中の人はあまり好きじゃないそうです。&nbsp;<br> 
+時間経過は固定にした方がよさそうです。&nbsp;<br> 
+<br> 
+ 
+「処理の繰り返し回数」は   
+「経過させる時間」内での計算を何回に分けて行うか、&nbsp;<br> 
+という値だと思えばいいと思います。&nbsp;<br> 
+この値を小さくすれば計算速度(Stepメソッドの処理時間)が速くなりますが衝突判定が甘くなり、&nbsp;<br> 
+大きくすれば精度が上がってよりリアルな動きになりますが処理時間は大きくなります。<br> 
+<br> 
+&nbsp;例えば「経過させる時間」が100秒で「処理の繰り返し回数」が20回ならば&nbsp;<br> 
+100/20=5[秒]ずつ物体を動作させて衝突判定が行われるということになります。&nbsp;<br> 
+なお、お勧めは 10 だそうです。&nbsp;<br> 
+<br> 
+<br> 
+ 
+ 
+３．２　表示&nbsp;<br>
+<br>
+
+物体を表示するには、位置と回転角度を取得する必要があります。<br>
+</p>
+<table border="1" width="100%">
+  <tr>
+    <td width="100%" bgcolor="#FFFFFF"><font SIZE="2"><br>
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#008000">'６０回繰り返します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; </font><font SIZE="2" COLOR="#0000ff">For</font><font SIZE="2">  
+      i </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2"> </font><font SIZE="2" COLOR="#0000ff">Integer</font><font SIZE="2">  
+      = 0 </font><font SIZE="2" COLOR="#0000ff">To</font><font SIZE="2"> 59<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'シミュレーションを１ステップ行います。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'一般的にタイムステップと繰り返し回数は固定にした方がよいです。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">world.Step(timeStep, iterations)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#008000">'落下箱物体の位置と角度を出力します。<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2" COLOR="#0000ff">Dim</font><font SIZE="2"> position </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      bb2Vec2 = body.GetPosition()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      Dim</font><font SIZE="2"> angle </font><font SIZE="2" COLOR="#0000ff">As</font><font SIZE="2">  
+      </font><font SIZE="2" COLOR="#0000ff">Single</font><font SIZE="2"> =  
+      body.GetAngle()<br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+      </font><font SIZE="2">Console.WriteLine(</font><font SIZE="2" COLOR="#a31515">&quot;{0,3:f}  
+      {1,3:f} {2,3:f}&quot;</font><font SIZE="2">, position.x, position.y,  
+      angle)<br> 
+      <br> 
+      </font><font COLOR="#0000ff" size="2">&nbsp;&nbsp;&nbsp; Next<br> 
+      </font></td> 
+  </tr> 
+</table> 
+<p> 
+ 
+HelloWorldでは、物体配置時のボディのインスタンス(body)をとっておき、&nbsp;<br> 
+GetPositionメソッドで位置、GetAngleメソッドで角度を取得しています。&nbsp;<br> 
+ 
+一応、bb2WorldのGetBodyListメソッドにて   
+ワールド内のボディを列挙することは可能ですが、&nbsp;<br> 
+効率を考えればHelloWorldのように   
+別途退避させておく方がいいでしょう。&nbsp;<br> 
+ 
+ちなみに、GetBodyListメソッドは先頭のボディを返しますが、&nbsp;<br> 
+返されたボディのGetNextメソッドがNothingを返すまで繰り返すことで&nbsp;<br> 
+全てのボディを列挙することができます。&nbsp;<br> 
+同様にボディを構成するシェイプもGetShapeListから列挙できます。&nbsp;<br> 
+<br> 
+ 
+具体的な例を下記に示します。&nbsp;<br> 
+<br> 
+ 
+            Dim bdy As bb2Body = world.GetBodyList()&nbsp;<br> 
+            Do While bdy IsNot Nothing&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; 'ボディ情報取得&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Debug.Print("body")&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Dim pos As bb2Vec2 = bdy.GetPosition()&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Dim ang As Single = bdy.GetAngle()&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Debug.Print("  位置 = {0}, 角度 = {1}", pos.ToString, ang)&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Dim shp As bb2Shape = bdy.GetShapeList&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Do While shp IsNot Nothing&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 'シェイプ情報取得&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Debug.Print("  シェイプ")&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Select Case shp.GetType()&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Case bb2ShapeType.e_polygonShape&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+'多角形シェイプ&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+Dim pshp As bb2PolygonShape = bb2PolygonShape.CastFrom(shp)&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+Debug.Print("    頂点数 = {0}", pshp.GetVertexCount())&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Case bb2ShapeType.e_circleShape&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+'円形シェイプ   
+                            Dim cshp As bb2CircleShape = bb2CircleShape.CastFrom(shp)&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  
+Debug.Print("    半径 = {0}", cshp.GetRadius())&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; End Select&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; '次のシェイプへ&nbsp;<br> 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; shp = shp.GetNext()&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; Loop&nbsp;<br> 
+<br> 
+&nbsp;&nbsp;&nbsp; '次のボディへ&nbsp;<br> 
+&nbsp;&nbsp;&nbsp; bdy = bdy.GetNext()&nbsp;<br> 
+            Loop&nbsp;<br> 
+<br> 
+ 
+シェイプ情報を取得する場合は、&nbsp;<br> 
+bb2ShapeのGetTypeメソッドで取得できるシェイプタイプによって、&nbsp;<br> 
+bb2PolygonShape又はbb2CircleShapeにキャストする必要があります。&nbsp;<br> 
+(この辺はライブラリの手抜き感が拭えませんが^^;)&nbsp;<br> 
+<br> 
+ 
+ポリゴンシェイプの各頂点座標は、   
+bb2PolygonShapeのVerticesプロパティで取得できます。&nbsp;<br> 
+注意して欲しいのは、この値がボディ内でのローカル座標であるということです。&nbsp;<br> 
+（ボディの位置や角度に関係なく通常不変です。）&nbsp;<br> 
+このため描画するときは、   
+ボディの位置や角度に合わせて変換してやる必要があります。&nbsp;<br> 
+変換はボディのGetWorldPosiontメソッドを使うと簡単にできます。&nbsp;<br> 
+シェイプのVerticesプロパティの値を   
+GetWorldPosiontメソッドに食わせる(引数にして呼び出す)と、&nbsp;<br> 
+ワールド座標が取得できます。&nbsp;<br> 
+具体的な方法は、サンプルのDemo1のform1.vbのDrawAllを見てください。&nbsp;<br> 
+<br> 
+ 
+円形シェイプの場合も同様に   
+bb2CircleShapeのGetRadiusメソッドで半径を取得することが出来ます。&nbsp;<br> 
+円形シェイプの場合、ボディによる回転を考慮しなくとも良いならば&nbsp;<br> 
+ボディの位置を中心にGetRadiusメソッドで取得した値を半径とした円を描くだけです。&nbsp;<br> 
+ 
+ 
+以上がBox2D(Box2DLib)を使う例になります。&nbsp;<br> 
+<br> 
+物体の作り方さえ理解してしまえば  
+あとは繰り返し作業になるので難しくはないと思います。<br> 
+(難しくはないですがちょっと面倒かも)</p> 
+<p>　</p> 
+<hr> 
+<p><a href="index.html">上に戻る<br>
+</a></p>

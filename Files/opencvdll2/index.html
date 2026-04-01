@@ -1,0 +1,634 @@
+<html>
+
+
+
+<head>
+
+
+<meta name="GENERATOR" content="Microsoft FrontPage 4.0">
+
+<meta name="ProgId" content="FrontPage.Editor.Document">
+
+<title>OpenCV関係</title>
+
+</head>
+
+
+
+<body bgcolor="#CCFFCC">
+
+
+
+<h1><b>OpenCV関係３(クラスライブラリ C++/CLI版)</b></h1> 
+ 
+<hr> 
+ 
+<hr> 
+ 
+ 
+ 
+<h2>◎概要 
+</h2> 
+ 
+ 
+ 
+<p>OpenCVを.Net Framework上から使用する為のクラスライブラリです。<br> 
+主にVB(VB2008)から使用することを目的に作成してありますが、<br> 
+C#などからも使用できると思います。<br> 
+（普段C#を使っていないので、試された方、状況を教えてもらえるとうれしいです）<br> 
+<br> 
+同様のライブラリはいくつかあるようですが、<br> 
+このライブラリの特徴と言えるものは下記になります。<br> 
+<br> 
+・OpenCVのソース(ヘッダファイル)から<br> 
+　ライブラリ用のソースを自動生成しています。<br>
+　（ただし例外的に手動で変換している部分はあります。<br>
+　　また変換できない部分はバッサリとカットしています。）<br>
+<br>
+・オリジナルにできるだけ近い使い方ができるように考えています。<br>
+　よってオブジェクト指向な使われ方はあまり考慮されていません。<br>
+　（オブジェクト指向なプログラミングを信条としている方は<br>
+　　別途ラッパするライブラリ等を作ってくださいませ。）<br>
+<br>
+・速度よりも互換性を重視しています。<br>
+　速度が必要な場合はオリジナルのOpenCVをC/C++から使うべきです。<br>
+<br>
+・以前のバージョン(OpenCVLib.dll)はVBで作成されていましたが、<br>
+　こちらのバージョン(OpenCVxxx.dll)はC++/CLIで作成されています。<br>
+　またDLLファイル名を推測できるものにしています。<br>
+　（Ver1.0用 => OpenCV100.DLL、Ver1.1用 => OpenCV110.DLL）<br> 
+</p> 
+ 
+ 
+ 
+<hr> 
+ 
+ 
+ 
+<h2>◎ダウンロード／インストール 
+</h2> 
+ 
+ 
+ 
+<table border="1" width="801" height="151"> 
+  <tr> 
+    <td width="194" align="center" height="16">リリース</td> 
+    <td width="194" align="center" height="16">ライブラリ</td> 
+    <td width="216" align="center" height="16">ソース</td> 
+    <td width="477" align="center" height="16">備考</td> 
+  </tr> 
+  <tr> 
+    <td width="194" height="15"> 
+      <p align="center">2008/12/03</p>
+    </td>
+    <td width="194" height="15"><a href="OpenCVLib100_20081127.zip">OpenCVLib100_20081127.zip</a></td>
+    <td width="216" height="15"><a href="OpenCVLib100_20081127SRC.zip">OpenCVLib100_20081127SRC.zip</a></td>
+    <td width="477" height="15">OpenCV 1.0用</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2008/12/03</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib110_20081127.zip">OpenCVLib110_20081127.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib110_20081127SRC.zip">OpenCVLib110_20081127SRC.zip</a></td>
+    <td width="477" height="16">OpenCV 1.1pre1用</td>
+  </tr>
+  <tr>
+    <td width="194" height="16">
+      <p align="center">2009/08/26</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib110_20090826.zip">OpenCVLib110_20090826.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib110_20090826SRC.zip">OpenCVLib110_20090826SRC.zip</a></td>
+    <td width="477" height="16">OpenCV 1.1pre1用 サンプル追加</td>
+  </tr>
+  <tr>
+    <td width="194" height="14">
+      <p align="center">2010/03/12</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib110_20100312.zip">OpenCVLib110_20100312.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib110_20100312SRC.zip">OpenCVLib110_20100312SRC.zip</a></td>
+    <td width="477" height="16">OpenCV 1.1pre1用 サンプル追加<br>Windows 7 動作確認済み</td>
+  </tr>
+  <tr>
+    <td width="194" height="14">
+      <p align="center">2010/04/05</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib200_20100405.zip">OpenCVLib200_20100405.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib200_20100405SRC.zip">OpenCVLib200_20100405SRC.zip</a></td>
+    <td width="477" height="16">OpenCV 2.0a用<br>Windows 7 動作確認済み</td>
+  </tr>
+  <tr>
+    <td width="194" height="14">
+      <p align="center">2010/04/21</p>
+    </td>
+    <td width="194" height="16"><a href="OpenCVLib210_20100421.zip">OpenCVLib210_20100421.zip</a></td>
+    <td width="216" height="16"><a href="OpenCVLib210_20100421SRC.zip">OpenCVLib210_20100421SRC.zip</a></td>
+    <td width="477" height="16">OpenCV 2.1用<br>Windows 7 動作確認済み</td>
+  </tr>
+</table>
+
+<p>ライブラリ版には、クラスライブラリのDLL(OpenCVxxx.DLL)と<br>
+動作確認用のサンプルプログラムが入っています。<br>
+<br>
+ソース版には、ライブラリ版の内容に加え、<br>
+DLL及びサンプルプログラムの全ソースファイルが含まれます。<br>
+<br>
+<br>
+DLLを使用する場合は、上記のライブラリ版を適当なフォルダに展開し、<br>
+VB上からDLLを参照設定（メニュー「プロジェクト」－「参照の追加」）して下さい。<br>
+<br>
+DLLへの参照が追加されると<br>
+「ManagedOpenCV」という名前空間(クラス)が利用できるようになります。<br>
+<br>
+なお当然ですが、別途OpenCVがインストールされている必要があります。
+</p>
+
+
+
+<hr>
+
+
+
+<h2>◎ライセンス
+</h2>
+
+
+
+<p>ライセンスはOpenCVのライセンスに従います。<br>
+GPLではないので、OpenCVを使用していることを明記すれば、<br>
+自前のプログラムに組み込んで使用してもソースを公開する義務はないと思います。</p>
+
+
+
+<hr>
+
+
+
+<h2>◎使用方法（参照設定）
+</h2>
+
+
+
+<p>OpenCVを使用したいプロジェクトにて「<b>OpenCVLib???.dll</b>」を参照設定して下さい。<br>
+OpenCVLibクラスライブラリが使えるようになります。<br>
+<br>
+VB2008の場合、メニュー「プロジェクト」－「参照の追加」－「参照」タブ」で<br>
+<b>「OpenCVLib???.dll」</b>を選択してください。     
+</p>     
+     
+     
+     
+<hr>     
+     
+     
+     
+<h2>◎使用上の注意   
+</h2>   
+   
+   
+   
+<p><b><u>○サポートされているもの</u></b><br>
+関数、定数、構造体はほとんどが使用可能です。<br>
+コールバックの型定義はデリゲートとして定義されています。<br>
+<br>
+ただし概要にも書いてありますが、基本的に自動変換によって生成していますので<br>
+引数の型などが不適切なものがあるかもしれません。<br>
+掲示板かメールで連絡頂ければできるだけ修正いたします。<br>
+<br>
+引数付きマクロについては、ほとんどサポートしておりません。<br>
+言語の差異により自動での変換が困難なためで、<br>
+使用頻度の高いものなどは手動で追加してあります。<br>
+（CV_IABS、CV_RGB、CV_NEXT_SEQ_ELEM、などはサポートされます）<br>
+<br>
+関数、定数、構造体、などのサポート状況については<br>
+DLLソースフォルダ下にある「report.txt」を参照してください。<br>
+<br>
+<br>
+<br>
+<b><u>○名前空間について</u></b><br>
+全ての関数/定数などは「ManagedOpenCV」というクラスの静的メンバとして定義されています。<br>
+ですので、各ソースファイルの先頭で<br>
+　Imports ManagedOpenCV<br> 
+と記述しておけば、普通の関数のように呼び出すことが出来ます。<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○関数/定数/マクロの名称について</u></b><br> 
+原則としてオリジナルと同じ名前で使用できます。<br> 
+ただし、VBでは名称の大文字小文字を区別しない為、<br> 
+関数名と構造体名が(大文字小文字を無視すると)同じであった場合問題が発生します。<br> 
+この為構造体名と同じ名称の関数は、名前の後に「_」(アンダーバー)が付いた名前になっています。<br> 
+（出来るだけ見た目を同じにしたいが為の処置です。）<br> 
+<br> 
+　例）関数　　cvSize()　=>  cvSize_()	後に '_' が付く<br> 
+　　　構造体　CvSize    =>  CvSize		同じ名前<br> 
+<br> 
+OpenCVの構造体を初期化して返す関数(cvSizeやcvScalar等)は<br> 
+構造体の名称を小文字化した名称になっていますので<br> 
+その場合は関数の後に「_」を追加するようにしてください。<br> 
+また、一部の構造体には同等の動作をするコンストラクタを追加しています。<br> 
+（CvMat、CvRect、CvPoint、CvSize、など。）<br> 
+<br> 
+　例）img = cvCreateImage( cvSize(sx,sy), 8, 1 )<br> 
+　　　　　　　　　↓<br>
+　　　img = cvCreateImage( cvSize_(sx,sy), 8, 1 )<br> 
+　　　　　　　　　または<br>
+　　　img = cvCreateImage( new CvSize(sx,sy), 8, 1 )<br> 
+<br> 
+機能的には一緒です（コンストラクタは初期化関数を呼び出してます。）<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○ユーティリティ関数</u></b><br> 
+OpenCVには存在しませんが、あると便利な関数として下記を追加しています。<br> 
+<br> 
+　Function GetOpenCVInstallDirectory() as String<br> 
+　　OpenCVがインストールされているフォルダを返します。<br>
+　　サンプル画像を使用する場合は、<br>
+　　　GetOpenCVInstallDirectory() + "\samples\c\lena.jpg"<br> 
+　　などとしてください。<br>
+<br>
+　Function LoadImageFromResorce( ByVal ResourceName As String ) As IplImage<br> 
+　Function LoadImageFromResorce( ByVal ResourceName As String, Byval iscolor as Integer ) As IplImage<br> 
+　　リソースの画像ファイルを読み込み、イメージデータ(IplImage)を作成します。<br>
+　　リソースデータはビルドアクションを「組み込まれたリソース」にして下さい。<br>
+<br>
+　　　例）リソースとしてimg.bmpをプロジェクトに追加した場合<br>
+　　　　　Dim img As IplImage = LoadImageFromResorce( "img.bmp" )<br> 
+<br> 
+　　iscolorにCV_LOAD_IMAGE_GRAYSCALEが指定された場合、１チャンネル画像となります。<br>
+　　iscolorにCV_LOAD_IMAGE_COLORが指定された場合、３チャンネル画像となります。<br>
+　　iscolorを省略又は上記以外の場合、元画像に合わせたチャンネル数となります。<br>
+<br>
+<br>
+<b><u>○構造体について</u></b><br>
+全てのOpenCV(オリジナル)での構造体(以下CV構造体)はクラスとして定義されています。<br>
+これは構造体のデータはできるだけアンマネージ領域においたままにして<br>
+アンマネージ/マネージ間のデータ変換を極力抑え<br>
+GCの影響を受けないようにしたかった為です。<br>
+<br>
+しかしこれによってCでの記述とVBでの記述で大きく異なる部分が出てきます。<br>
+（考え方としては「全てポインタ変数になっている」と思えばよいかもしれません。）<br>
+下記の点に注意して下さい。<br>
+<br>
+・VBでCV構造体(正確にはクラス)の変数を定義しただけでは実体が作られていません。<br>
+　→　Newで新規にインスタンスを生成してください。<br>
+　　　なおアンマネージ領域に新たに領域を作成する方法と、<br>
+　　　既存のアンマネージ領域をラップする方法があります。（後述）<br>
+　　　　例）CvPoint p1;		→	Dim p1 As New CvPoint<br> 
+　　　　　　CvPoint *p2;	→	Dim p2 as CvPoint<br> 
+　　　　　　CvPoint *p3 = (CvPoint*)ptr;&nbsp;<br>
+							→	Dim p3 as CvPoint = New CvPoint(ptr)<br> 
+<br> 
+・C/C++では構造体を代入すると全てのメンバがコピーされますが、<br> 
+　VBではクラスであるため参照情報のみコピーされ、実際の値はコピーされません。<br>
+　値を代入(コピー)したい場合は、CV構造体のCopyFromメソッドを使用してください。<br>
+　　　　例）CvPoint a,b;	→		Dim a As New CvPoint, b As CvPoint<br> 
+　　　　　　a = b;					a.CopyFrom( b )<br> 
+<br> 
+　ただし、構造体の中の配列に関しては、代入することで値がコピーされます。<br>
+　（CvRandStateのparamなど）<br>
+<br>
+CV構造体を定義する場合、<br>
+何も引数を与えなければアンマネージ領域に新しい領域を確保します。<br>
+この場合、CV構造体(クラス)が破棄されるとき自動的にアンマネージの領域も破棄されます。<br>
+C言語での動作と同様に、構造体の各メンバはクリアされません。<br>
+<br>
+アンマネージポインタを指定して生成した場合は、<br>
+その領域にある構造体をラップするオブジェクトとなります。<br>
+この場合オブジェクトを破棄してもアンマネージ領域は解放されません。<br>
+<br>
+ほとんどのCV構造体には下記のメソッド/プロパティが用意されています。<br>
+（構造体内部の名前なし構造体などには存在しない場合もあります。）<br>
+<br>
+　StructSizeプロパティ<br>
+　　CV構造体のバイト数を返します。<br>
+　　このプロパティは静的メンバです。<br>
+　　　例）Dim ptr As IntPtr = Marshal.AllocHGlobal( CvSize.StructSize )<br> 
+<br> 
+　CopyFromメソッド<br>
+　　他のCV構造体の内容をコピーします。<br>
+　　　例）a.CopyFrom( b )	ｂの内容がａにコピーされます。<br> 
+<br> 
+　Cloneメソッド<br>
+　　自身の複製を作成します。<br>
+<br>
+　GetArrayメソッド<br>
+　　自身のアンマネージ領域を先頭とする構造体配列を返します。<br>
+　　引数として配列の要素数を指定します。<br>
+　　　例）Dim pnt() As CvPoint = ret.GetArray( 5 )<br> 
+	静的メンバ版では、ポインタと個数を指定します。<br> 
+　　　例）dim pnt() As CvPoint = CvPoint.GetArray( ptr, 5 )<br> 
+<br> 
+　CreateNewArrayメソッド<br>
+　　連続したアンマネージ領域をラップするCV構造体の配列を生成します。<br>
+　　引数として配列の要素数を指定します。<br>
+　　このメソッドは静的メンバです。<br>
+　　　例）Dim pnt() As CvPoint = CvPoint.CreateNewArray( 5 )<br> 
+<br> 
+　　通常のVB構文(Redim等)で作成した配列はアンマネージ領域が連続しません。<br>
+　　構造体配列を引数として必要とする関数には<br>
+　　必ずCreateNewArrayメソッドで生成した配列の先頭要素を指定して下さい。<br>
+<br>
+全てのCV構造体はUMemoryクラスを継承していますので、<br>
+UMemoryのメソッド/プロパティも使用できます。<br>
+（AddressプロパティでCV構造体のポインタが取得できます）<br>
+<br>
+<br>
+<b><u>○構造体、又は、構造体のポインタについて</u></b><br>
+関数の引数がCvSizeやCvPoint*などの構造体/構造体ポインタの場合、<br>
+CV構造体をそのまま指定して下さい。<br>
+CvArr*の引数にも構造体をそのまま指定して下さい。<br>
+　例）Dim sz As New CvSize( 320, 240 )<br> 
+　　　Dim img as IplImage = cvCreateImage( sz, 8, 1 )	'第一引数がCvSize<br> 
+　　　cvResetImageROI( img )							'第一引数がIplImage*<br> 
+<br> 
+ダブルポインタ(IplImage**)を引数に持つものもそのまま指定して下さい。<br> 
+　例）cvReleaseImage( img )			'第一引数がIplImage**<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○ポインタによるメモリ操作について</u></b><br> 
+VBではポインタという概念がありません。<br> 
+ポインタを渡す、或いは、ポインタで受け取る、ポインタの示す位置からデータを取り出す、<br> 
+といったことを直接行うことが出来ません。<br> 
+<br> 
+その為、下記の様なクラス/構造体を用意してあります。<br> 
+<br> 
+UPointer構造体<br> 
+　アンマネージメモリのアドレス（ポインタ）を格納します。<br>
+　IntPtrとほぼ同じ意味になります。<br>
+<br>
+UMemoryクラス<br>
+　アンマネージメモリの領域を管理します。<br>
+　新規に割り当てたり、既に確保されているポインタをラップして<br>
+　VBからアンマネージメモリに対して読み書きができるようにします。<br>
+<br>
+U***Arrayクラス(UIntArray,UFloatArray、など）<br>
+　UMemoryと同様にアンマネージメモリの領域を管理しますが、<br>
+　特定の型の配列としてアクセスしやすいようになっているクラスです。<br>
+<br>
+<br>
+<b><u>○UPointer構造体について</u></b><br>
+アンマネージメモリのアドレス（ポインタ）が格納されます。<br>
+IntPtrとほぼ同じようなものですが、変換や演算などが容易にできるようになってます。<br>
+<br>
+下記のメソッド/プロパティがあります。<br>
+<br>
+　コンストラクタ<br>
+　UPointer() 　　		0(NULL)で初期化します。<br> 
+　UPointer( IntPtr Ptr )	指定されたアンマネージ領域アドレス(ポインタ)で初期化します。<br> 
+<br> 
+　Ptrプロパティ<br>
+　　アンマネージ領域のアドレス（ポインタ）を取得・設定します。<br>
+<br>
+　IsNullプロパティ<br>
+　　NULL(=0)かどうかを判断します。<br>
+<br>
+　ToInt32メソッド<br>
+　　Integer型に変換したアドレスを返します。<br>
+<br>
+　Nullプロパティ<br>
+　　NULLポインタを示すUPointerインスタンスを返す静的メンバです。<br>
+<br>
+　+演算子/-演算子<br>
+　　整数を加算/減算します。<br>
+<br>
+　=演算子/&lt;>演算子<br>
+　　値の一致/不一致を判断します。<br>
+<br>
+　IntPtr変換<br>
+　　IntPtr型へ変換、及び、IntPtr型から変換することができます。<br>
+<br>
+<br>
+<b><u>○UMemoryクラスについて</u></b><br>
+アンマネージメモリの確保/破棄、読込/書き込みを行うクラスです。<br>
+<br>
+下記のメソッド/プロパティがあります。<br>
+<br>
+　コンストラクタ<br>
+　UMemory( int AllocSize )						指定されたサイズの新しい領域を確保します。<br> 
+　UMemory( IntPtr Ptr, int MemorySize )			指定された領域を管理します。<br> 
+　UMemory( UPointer Ptr, int MemorySize )		指定された領域を管理します。<br> 
+　UMemory( UPointer Ptr )						指定された領域を管理します。<br> 
+　UMemory( String^ Text )						新しい領域を確保し文字列を格納します。<br> 
+　UMemory( System::Type^ Typename, int Count )	型と個数を指定し新しい領域を確保します。<br> 
+<br> 
+　Addressプロパティ<br>
+　　先頭アドレス（ポインタ）を返します。<br>
+<br>
+　Sizeプロパティ<br>
+　　領域のサイズ(バイト数)を返します。<br>
+　　サイズが不明な場合は0が返されます。<br>
+<br>
+　MustDeleteプロパティ<br>
+　　クラスが破棄されるときに<br>
+　　アンマネージ領域も破棄するかどうかを取得・設定します。<br>
+　　基本的に新規作成した場合はTrue、<br>
+　　ポインタを指定して生成した場合はFalseになっています。<br>
+<br>
+　MoveNextメソッド<br>
+　　Sizeプロパティの分だけポインタを進めます。<br>
+　　MustDeleteがTrueの場合は失敗します。<br>
+<br>
+　****Valueプロパティ（IntValue/FloatValue等）<br>
+　　ポインタの示す位置からそれぞれの型でデータの読み書きを行います。<br>
+　　****には下記の型を指定できます。()内はVBでの型です。<br>
+　　　Byte(Byte)　&nbsp;<br>
+　　　Word(UShort)&nbsp;<br>
+　　　DWord(UInteger)<br>
+　　　SByte(SByte)<br>
+　　　Short(Short)<br>
+　　　Int(Integer)<br>
+　　　Float(Single)<br>
+　　　Double(Double)<br>
+　　　IntPtr(IntPtr)<br>
+　　　Address(UPointer)<br>
+<br>
+　　　例）x = mm.IntValue + 1<br> 
+　　　　　mm.SingleValue = 10<br> 
+<br> 
+　****Arrayプロパティ（IntArrya/FloatArray等）<br>
+　　ポインタの示す位置を先頭とし<br>
+　　それぞれの型の配列としてデータの読み書きを行います。<br>
+　　****Valueプロパティと同じ型が指定できます。<br>
+<br>
+　　　例）x = mm.IntArray( 10 )<br> 
+　　　　　mm.SingleArray( 2 ) = 1.0f<br> 
+<br> 
+　　インデックスが0の場合、****Valueと同じとなります。<br>
+<br>
+　ReadTo****Arrayメソッド（ReadToIntArray/ReadToFloatArray等）<br>
+　　ポインタが示す位置を先頭とし、<br>
+　　それぞれの型の配列にデータを読み出します。<br>
+　　引数には要素数を指定します。<br>
+　　****には下記の型を指定できます。<br>
+　　　Byte(Byte)<br>
+　　　SByte(SByte)<br>
+　　　Short(Short)<br>
+　　　Int(Integer)<br>
+　　　Float(Single)<br>
+　　　Double(Double)<br>
+　　　IntPtr(IntPtr)<br>
+　　（Word、DWord、及び、Addressには使用できません）<br>
+<br>
+　　　例）Dim aa() As Integer = mm.ReadToIntArray( 10 )<br> 
+<br> 
+　　大量のデータを処理する場合、<br>
+　　マネージの配列に一括して読み込み、<br>
+　　処理が終了したのち一括して書き込みを行った方が<br>
+　　若干パフォーマンスが上がります。<br>
+<br>
+　WriteFrom****Arrayメソッド（WriteFromIntArray/WriteFromFloatArray等）<br>
+　　ポインタが示す位置を先頭とし、<br>
+　　それぞれの型の配列データを書き込みます。<br>
+　　ReadTo****Arrayメソッドと同じ型が使用できます。<br>
+<br>
+　　　例）Dim dd(5) As Integer<br> 
+　　　　　mm.WriteFromIntArray( dd )<br> 
+<br> 
+　PeekStringメソッド<br>
+　　ポインタが示す領域から文字列を読み込みます。<br>
+　　文字列はANSI文字列として変換されます。<br>
+　　引数を指定しない場合はNULL終端(0)が現れるまで読み込みます。<br>
+　　文字列長を指定した場合はその長さまでを読み込みます。<br>
+　　静的メンバのPeekStringメソッドでは<br>
+　　先頭アドレスを指定して読み込むことができます。<br>
+<br>
+　　　例）ss = mm.PeekString()<br> 
+　　　　　ss = UMemory.PeekString( Ptr, 5 )<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○U****Arrayクラス(UIntArray,UFloatArray、など）</u></b><br> 
+　UMemory同様にアンマネージメモリの確保/破棄、読込/書き込みを行うクラスで、<br>
+　各型の配列アクセスがデフォルトインデックスプロパティとなっています。<br>
+　****には下記の型を指定できます。<br>
+　　　Byte(Byte)　&nbsp;<br>
+　　　Word(UShort)&nbsp;<br>
+　　　DWord(UInteger)<br>
+　　　SByte(SByte)<br>
+　　　Short(Short)<br>
+　　　Int(Integer)<br>
+　　　Float(Single)<br>
+　　　Double(Double)<br>
+　　　IntPtr(IntPtr)<br>
+　　　Address(UPointer)<br>
+<br>
+　　例）Dim tbl As New UIntArray( ptr ) 'ptrはUPointer<br> 
+　　　　ans = tbl( 5 )<br> 
+　　　　tbl( 5 ) = 0<br> 
+<br> 
+　ポインタを指定して作成した場合、配列のサイズは指定できません。<br>
+　インデックスに注意しないと不正アクセスとなります。<br>
+<br>
+　引数に整数を指定した場合、要素数とみなされ<br>
+　アンマネージ領域にメモリを確保します。<br>
+　　例）Dim fdata As UFloatArray( 5 )<br> 
+		ans = fdata( 3 )<br> 
+		fdata( 3 ) = 0.0f<br> 
+<br> 
+　引数に対象型の配列を指定した場合、<br>
+　指定された配列の要素数分のアンマネージ領域が確保され、<br>
+　配列のデータがコピーされます。<br>
+　これによりアンマネージ領域に定数テーブルなどを直接生成することが可能です。<br>
+　　例）Dim fdata as UFloatarray( new Single() { 10.0f, 20.0f, 30.0f } )<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○CvArrについて</u></b><br> 
+OpenCVの関数にはCvArr型の引数をとるものが数多くあります。<br> 
+オリジナルではIplImageやCvMatなど様々な構造体のポインタを指定することができます。<br> 
+ライブラリでは全てUMemory型の引数として定義されていますので、<br> 
+全てのCV構造体(クラス)を指定することができます。<br> 
+（指定することは出来ますが、処理されるかどうかはそれぞれの関数次第です。）<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○コールバックについて</u></b><br> 
+コールバック関数を指定する関数(cvCreateTrackbarなど)では<br> 
+オリジナルの型と同名称なデリゲートを指定します。<br> 
+デリゲートを指定するときはデリゲートの生存期間に注意して下さい。<br> 
+通常は下記の様に使用して下さい。<br> 
+<br> 
+　Sub OnTrack( int Pos )<br> 
+　　...<br>
+  End Sub<br> 
+　Dim OnTrack_Ptr As New CvTrackbarCallback( AddressOf OnTrack )<br> 
+<br> 
+　Sub Init()<br> 
+　　...<br>
+　　cvCreateTrackbar( TRACKBARNAME, WINDOWNAME, UPointer.Null, 100, OnTrack_Ptr )<br> 
+　　...<br>
+　End Sub<br> 
+<br> 
+cvCreateTrackbarの第五引数で、<br> 
+　　cvCreateTrackbar( TRACKBARNAME, WINDOWNAME, UPointer.Null, 100, AddressOf OnTrack )<br> 
+と指定してしまうと、関数Initを抜けた時点でデリゲートが消滅し<br> 
+トラックバーを動かした瞬間に異常終了してしまいます。<br> 
+（デリゲートがGCで破棄されるまではうまく動いているようにみえますが、いずれ必ず落ちます）<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○cvCreateTrackbarについて</u></b><br> 
+トラックバーを定義するcvCreateTrackbarの第三引数では値を格納する領域を指定できます。<br> 
+これもデリゲート同様にGCによってアクセスできなくなる可能性があるので注意が必要です。<br> 
+グローバルな位置に定義した変数を指定すれば問題は起き難いですが、<br> 
+できれば第三引数にはNullを指定し、<br> 
+コールバック関数の引数かcvGetTrackbarPosでトラックバーの値を取得した方が安全だと思います。<br> 
+初期値を設定する場合は、cvSetTrackbarPosを使用してください。<br> 
+<br> 
+<br> 
+<br> 
+<b><u>○IplImageについて</u></b><br> 
+IplImageにはビットマップを生成する為のメソッドが追加されています。<br> 
+<br> 
+　UpdateBitmapImageメソッド<br>
+　　内部のイメージデータを使ってBitmaoを生成します。<br>
+　　対応しているのはビット深度が８ビット(IPL_DEPTH_8U)の<br>
+　　チャンネル数が1か3の場合のみです。<br>
+　　（チャンネル数が3の場合、Format24bppRgbとして画像を生成します。<br>
+　　　チャンネル数が1の場合、グレイスケール画像になります。）<br>
+<br>
+　BitmapImageプロパティ<br>
+　　UpdateBitmapImageメソッドにて生成されたビットマップイメージを返します。<br>
+　　UpdateBitmapImageが呼び出されない限り更新されません。<br>
+<br>
+　例）<br>
+　　Dim img As IplImage = cvCreateImage( cvSize_( 320, 240 ), IPL_DEPTH_8U, 3 )<br> 
+　　img.UpdateBitmapImage()<br>
+　　Picture1.Image = img.BitmapImage<br> 
+　　Picture1.Refresh<br>
+<br>
+このメソッドを使用することにより<br>
+PictureBoxなどにIplImageの画像を表示することができます。<br>
+ただし、この方法での描画は決して速くありませんので、<br>
+毎フレーム描画するとコマ落ちする原因になります。<br>
+<br>
+<br>
+<br>
+<b><u>○サンプルについて</u></b><br>
+サンプルプログラムは二つのプロジェクトに分けてあります。<br>
+<br>
+　VBSample<br>
+　　OpenCV付属のサンプルを移植したサンプルと、<br>
+　　独自に作成したサンプルがあります。<br>
+<br>
+　VBSample2<br>
+　　http://opencv.jp/sample にて公開されているサンプルを移植したサンプルです。<br> 
+　　作成者の怡土順一氏、及び、サイトを支えて頂いている方々に感謝します。<br>
+　　VBSample2はOpenCV1.1pre1用のライブラリにのみあります。<br>
+<br>
+</p>
+ 
+ 
+ 
+<hr> 
+ 
+<p><a href="../index.html">上に戻る</a></p> 
+</body> 
+ 
+ 
+ 
+</html> 
+ 
